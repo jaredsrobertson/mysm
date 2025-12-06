@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MYSM</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Indie+Flower&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #333; --accent: #FF5A92; --bg: #E0E0E0; --paper: #FFF; }
+        
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 15px; box-sizing: border-box; overscroll-behavior-y: none;
+            background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .poster {
+            background: var(--paper);
+            padding: 20px 20px 40px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 100%; max-width: 360px;
+            text-align: center;
+            transform: rotate(-1deg);
+            transition: opacity 0.3s;
+            position: relative;
+        }
+        .poster::before {
+            content: ''; position: absolute; top: -15px; left: 50%; width: 120px; height: 35px; 
+            background: rgba(255,255,255,0.4); border: 1px solid rgba(0,0,0,0.05); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); transform: translateX(-50%) rotate(2deg);
+        }
+
+        h1.missing-title {
+            font-family: 'Oswald', sans-serif; font-size: 52px; margin: 0;
+            letter-spacing: 2px; text-transform: uppercase; color: #000; line-height: 1;
+        }
+
+        /* PHOTO FRAME & OVERLAYS */
+        .photo-frame {
+            width: 100%; aspect-ratio: 1/1; background: #f8f8f8; margin: 15px 0;
+            overflow: hidden; position: relative; border: 2px solid #000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        #slideshow-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        
+        /* Tap trigger for upload (invisible overlay) */
+        .upload-trigger {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; cursor: pointer;
+        }
+
+        /* Trash Button (Visible on top of image) */
+        .trash-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #ff4757; border: 2px solid #ff4757;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; cursor: pointer; z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .trash-btn:active { transform: scale(0.9); background: #ff4757; color: white; }
+
+        .empty-state { color: #ccc; transition: 0.2s; z-index: 5; pointer-events: none; }
+        .plus-icon { font-size: 60px; line-height: 0.8; font-weight: bold; }
+        .add-text { font-family: 'Indie Flower'; font-size: 18px; }
+
+        h2.bottom-text {
+            font-family: 'Oswald', sans-serif; font-size: 24px; margin: 0;
+            text-transform: lowercase; font-weight: 500; color: #000;
+        }
+
+        .controls { margin-top: 20px; display: grid; gap: 10px; }
+        
+        .btn {
+            display: block; width: 100%; padding: 14px; border: none; border-radius: 50px;
+            font-size: 16px; font-weight: bold; cursor: pointer; color: white;
+            transition: transform 0.1s; font-family: 'Indie Flower', cursive; letter-spacing: 1px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-love { background: #FF5A92; }
+        .btn-miss { background: #4FC3F7; color: #004D40; }
+        
+        .btn:disabled {
+            background: #ddd !important; color: #aaa !important;
+            cursor: not-allowed; transform: none !important;
+        }
+
+        .status-badge {
+            background: #fff; border: 1px solid #ddd; padding: 8px 15px;
+            border-radius: 20px; font-size: 12px; color: #666;
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+        .dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; }
+        .dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+
+        .hidden { display: none !important; }
+        input.input-field { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; text-align: center; font-family: 'Indie Flower'; font-size: 18px; }
+        .loader { position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#333; font-size:12px; font-weight: bold; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 10px; z-index: 15;}
+    </style>
+</head>
+<body>
+
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <div id="setup-screen" class="poster hidden">
+        <h1 class="missing-title" style="font-size: 40px;">WHO ARE YOU?</h1>
+        <div style="margin: 30px 0;">
+            <p>Connect to your partner.</p>
+            <input type="text" id="my-name" class="input-field" placeholder="My Name">
+            <input type="text" id="partner-code" class="input-field" placeholder="Secret Code">
+        </div>
+        <button class="btn btn-love" onclick="saveUser()">Create Poster</button>
+        <p style="font-size: 12px; color: #999;">If you were invited, check the code matches!</p>
+    </div>
+
+    <div id="app-screen" class="poster hidden">
+        
+        <div class="status-badge" onclick="shareInvite()">
+            <div class="dot" id="status-dot"></div>
+            <span id="connection-text">Waiting... (Tap to Invite)</span>
+        </div>
+
+        <h1 class="missing-title">MISSING</h1>
+        
+        <div class="photo-frame">
+            <div class="upload-trigger" onclick="triggerUpload()"></div>
+
+            <div id="trash-btn" class="trash-btn hidden" onclick="deleteCurrentPhoto()">🗑️</div>
+
+            <div id="empty-state" class="empty-state">
+                <div class="plus-icon">+</div>
+                <div class="add-text">add photo</div>
+            </div>
+            
+            <img id="slideshow-img" src="">
+            <div id="upload-loader" class="loader hidden">Compressing...</div>
+            
+            <input type="file" id="file-input" accept="image/*" style="display:none" onchange="processAndUpload(this)">
+        </div>
+
+        <h2 class="bottom-text">you so much</h2>
+
+        <div class="controls">
+            <button class="btn btn-love action-btn" onclick="sendLove('I Love You! ❤️')" disabled>I Love You ❤️</button>
+            <button class="btn btn-miss action-btn" onclick="sendLove('Thinking of You 💭')" disabled>Thinking of You 💭</button>
+        </div>
+
+        <button id="notify-btn" class="btn" style="background:#FF9800; font-size:12px; margin-top:15px;" onclick="requestPermission()">🔔 Enable Notifications</button>
+        <p onclick="resetApp()" style="font-size: 10px; color:#aaa; margin-top:20px; cursor:pointer;">Reset App</p>
+    </div>
+
+    <script src="config.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, deleteDoc, getDocs, collection, query, where, onSnapshot, addDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js";
+
+        if (!self.MYSM_CONFIG) alert("Missing config.js!");
+        const app = initializeApp(self.MYSM_CONFIG.firebase);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
+        const storage = getStorage(app);
+
+        let photos = []; // Array of photo objects { url, id, path, user }
+        let photoIndex = 0;
+        let slideInterval;
+
+        // --- 1. INITIALIZATION ---
+        function checkState() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteCode = urlParams.get('code');
+            if (inviteCode && !localStorage.getItem('mysm_code')) {
+                document.getElementById('partner-code').value = inviteCode;
+            }
+            if (!localStorage.getItem('mysm_name')) {
+                document.getElementById('setup-screen').classList.remove('hidden');
+            } else {
+                initApp();
+            }
+        }
+
+        async function initApp() {
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            const myName = localStorage.getItem('mysm_name');
+            const myCode = localStorage.getItem('mysm_code');
+
+            if (Notification.permission === "granted") {
+                document.getElementById('notify-btn').style.display = 'none';
+                syncToken();
+            }
+
+            // Connection Listener
+            const qUser = query(collection(db, "users"), where("code", "==", myCode));
+            onSnapshot(qUser, (snapshot) => {
+                let partnerName = null;
+                snapshot.forEach(doc => { if (doc.data().name !== myName) partnerName = doc.data().name; });
+                const statusText = document.getElementById('connection-text');
+                const statusDot = document.getElementById('status-dot');
+                const actionBtns = document.querySelectorAll('.action-btn');
+
+                if (partnerName) {
+                    statusText.innerText = `Connected: ${partnerName}`;
+                    statusDot.classList.add('online');
+                    actionBtns.forEach(btn => btn.disabled = false);
+                } else {
+                    statusText.innerText = "Waiting... Tap to Invite";
+                    statusDot.classList.remove('online');
+                    actionBtns.forEach(btn => btn.disabled = true);
+                }
+            });
+
+            // Message Listener
+            onSnapshot(doc(db, "history", myCode), (doc) => {
+                const data = doc.data();
+                if (data && data.from !== myName && Date.now() - data.timestamp.toMillis() < 10000) {
+                    document.getElementById('notif-sound').play().catch(e => console.log("Audio blocked"));
+                }
+            });
+
+            // Load Photos
+            loadPhotos(myCode);
+        }
+
+        window.shareInvite = async () => {
+            const code = localStorage.getItem('mysm_code');
+            const url = `${window.location.origin}/?code=${code}`;
+            if (navigator.share) {
+                try { await navigator.share({ title: 'MYSM Invite', text: `Join code: ${code}`, url: url }); } catch (err) {}
+            } else {
+                navigator.clipboard.writeText(url); alert("Invite link copied!");
+            }
+        }
+
+        // --- 2. PHOTOS (UPLOAD & DELETE) ---
+        async function loadPhotos(code) {
+            const q = query(collection(db, `rooms/${code}/photos`), orderBy("timestamp", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                photos = [];
+                // We now store the whole object so we can access ID and PATH
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    photos.push({
+                        id: doc.id,
+                        url: data.url,
+                        path: data.storagePath, // Needed for delete
+                        user: data.uploadedBy
+                    });
+                });
+                
+                if (photos.length > 0) {
+                    document.getElementById('empty-state').style.display = 'none';
+                    if (photoIndex >= photos.length) photoIndex = 0; // Reset index if photos deleted
+                    startSlideshow();
+                } else {
+                    document.getElementById('slideshow-img').style.display = 'none';
+                    document.getElementById('empty-state').style.display = 'block';
+                    document.getElementById('trash-btn').classList.add('hidden');
+                    if(slideInterval) clearInterval(slideInterval);
+                }
+            });
+        }
+
+        function startSlideshow() {
+            if (slideInterval) clearInterval(slideInterval);
+            const imgEl = document.getElementById('slideshow-img');
+            imgEl.style.display = 'block';
+            updateSlideView();
+
+            if(photos.length > 1) {
+                slideInterval = setInterval(() => {
+                    photoIndex = (photoIndex + 1) % photos.length;
+                    updateSlideView();
+                }, 4000);
+            }
+        }
+
+        function updateSlideView() {
+            if(photos.length === 0) return;
+            const currentPhoto = photos[photoIndex];
+            document.getElementById('slideshow-img').src = currentPhoto.url;
+            
+            // Show Trash Button ONLY if I uploaded this photo
+            const myName = localStorage.getItem('mysm_name');
+            const trashBtn = document.getElementById('trash-btn');
+            
+            if (currentPhoto.user === myName) {
+                trashBtn.classList.remove('hidden');
+            } else {
+                trashBtn.classList.add('hidden');
+            }
+        }
+
+        window.triggerUpload = () => document.getElementById('file-input').click();
+
+        // New Delete Function
+        window.deleteCurrentPhoto = async () => {
+            // Stop slideshow temporarily so it doesn't flip while deleting
+            if (slideInterval) clearInterval(slideInterval);
+            
+            if(!confirm("Delete this photo for everyone?")) {
+                startSlideshow(); // Resume if cancelled
+                return;
+            }
+
+            const photo = photos[photoIndex];
+            const code = localStorage.getItem('mysm_code');
+            const trashBtn = document.getElementById('trash-btn');
+            trashBtn.innerText = "⏳"; // Visual feedback
+
+            try {
+                // 1. Delete from Firestore
+                await deleteDoc(doc(db, `rooms/${code}/photos`, photo.id));
+                
+                // 2. Delete from Storage (Clean up the file)
+                if (photo.path) {
+                    const fileRef = ref(storage, photo.path);
+                    await deleteObject(fileRef);
+                }
+
+                alert("Deleted.");
+                // Note: The onSnapshot listener will auto-update the UI!
+                
+            } catch (error) {
+                console.error(error);
+                alert("Could not delete. Check console.");
+                trashBtn.innerText = "🗑️";
+            }
+        };
+
+        window.processAndUpload = async (input) => {
+            if (!input.files[0]) return;
+            const file = input.files[0];
+            const code = localStorage.getItem('mysm_code');
+            document.getElementById('upload-loader').classList.remove('hidden');
+
+            try {
+                const compressedBlob = await compressImage(file);
+                
+                // Create unique path
+                const path = `photos/${code}/${Date.now()}.jpg`;
+                const storageRef = ref(storage, path);
+                
+                await uploadBytes(storageRef, compressedBlob);
+                const url = await getDownloadURL(storageRef);
+                
+                // SAVE PATH TO DB SO WE CAN DELETE LATER
+                await addDoc(collection(db, `rooms/${code}/photos`), {
+                    url: url, 
+                    storagePath: path, // <--- Critical for deletion
+                    uploadedBy: localStorage.getItem('mysm_name'), 
+                    timestamp: serverTimestamp()
+                });
+                
+            } catch (error) {
+                alert("Upload failed.");
+            } finally {
+                document.getElementById('upload-loader').classList.add('hidden');
+            }
+        };
+
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX = 1024;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+                    else { if (h > MAX) { w *= MAX/h; h = MAX; } }
+                    
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                };
+            });
+        }
+
+        window.saveUser = async () => {
+            const name = document.getElementById('my-name').value.trim();
+            const code = document.getElementById('partner-code').value.trim();
+            if(!name || !code) return alert("Fill in both!");
+            localStorage.setItem('mysm_name', name);
+            localStorage.setItem('mysm_code', code);
+            await setDoc(doc(db, "users", name + "_" + code), { name: name, code: code, last_seen: serverTimestamp() }, { merge: true });
+            initApp();
+        };
+
+        window.sendLove = async (msg) => {
+            if(!document.getElementById('status-dot').classList.contains('online')) return alert("Wait for partner!");
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Sent! 💌";
+            setTimeout(() => btn.innerText = originalText, 2000);
+            await setDoc(doc(db, "history", localStorage.getItem('mysm_code')), {
+                last_message: msg, from: localStorage.getItem('mysm_name'), timestamp: serverTimestamp(), trigger_id: Date.now()
+            }, { merge: true });
+        };
+
+        async function syncToken() {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                const token = await getToken(messaging, { vapidKey: self.MYSM_CONFIG.vapidKey, serviceWorkerRegistration: reg });
+                await setDoc(doc(db, "users", localStorage.getItem('mysm_name') + "_" + localStorage.getItem('mysm_code')), { fcmToken: token }, { merge: true });
+            }
+        }
+
+        window.requestPermission = async () => {
+             const permission = await Notification.requestPermission();
+             if (permission === 'granted') location.reload();
+        };
+
+        window.resetApp = () => { if(confirm("Reset app?")) { localStorage.clear(); location.reload(); } };
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        checkState();
+    </script>
+</body>
+</html>
