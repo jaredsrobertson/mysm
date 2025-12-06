@@ -16,8 +16,18 @@
         body {
             font-family: -apple-system, system-ui, sans-serif;
             background-color: var(--bg);
-            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 100vh; padding: 15px; box-sizing: border-box; overscroll-behavior-y: none;
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            /* 🟢 CHANGED: Move everything to the top */
+            justify-content: flex-start; 
+            min-height: 100vh; 
+            /* 🟢 CHANGED: Add padding for the Tape to not get cut off */
+            padding-top: 40px; 
+            padding-bottom: 20px;
+            box-sizing: border-box; 
+            overscroll-behavior-y: none;
             background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
             background-size: 20px 20px;
         }
@@ -31,6 +41,8 @@
             transform: rotate(-1deg);
             transition: opacity 0.3s;
             position: relative;
+            /* Ensure it doesn't overlap the very top edge */
+            margin-bottom: 20px;
         }
         .poster::before {
             content: ''; position: absolute; top: -15px; left: 50%; width: 120px; height: 35px; 
@@ -43,22 +55,17 @@
             letter-spacing: 2px; text-transform: uppercase; color: #000; line-height: 1;
         }
 
-        /* PHOTO FRAME & OVERLAYS */
+        /* PHOTO FRAME */
         .photo-frame {
             width: 100%; aspect-ratio: 1/1; background: #f8f8f8; margin: 15px 0;
             overflow: hidden; position: relative; border: 2px solid #000;
             display: flex; align-items: center; justify-content: center;
+            touch-action: pan-y; 
         }
         
-        #slideshow-img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        
-        /* Tap trigger for upload (invisible overlay) */
-        .upload-trigger {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; cursor: pointer;
-        }
+        #slideshow-img { width: 100%; height: 100%; object-fit: cover; display: none; pointer-events: none; }
+        .upload-trigger { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; cursor: pointer; }
 
-        /* Trash Button (Visible on top of image) */
         .trash-btn {
             position: absolute; top: 10px; right: 10px;
             background: rgba(255, 255, 255, 0.9);
@@ -66,10 +73,9 @@
             width: 36px; height: 36px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 18px; cursor: pointer; z-index: 20;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.2s;
         }
-        .trash-btn:active { transform: scale(0.9); background: #ff4757; color: white; }
+        .trash-btn:active { transform: scale(0.9); }
 
         .empty-state { color: #ccc; transition: 0.2s; z-index: 5; pointer-events: none; }
         .plus-icon { font-size: 60px; line-height: 0.8; font-weight: bold; }
@@ -79,6 +85,9 @@
             font-family: 'Oswald', sans-serif; font-size: 24px; margin: 0;
             text-transform: lowercase; font-weight: 500; color: #000;
         }
+        
+        /* 🟢 NEW: Counter styling */
+        .photo-counter { font-size: 10px; color: #999; font-family: sans-serif; position: absolute; bottom: 5px; right: 5px; background: rgba(255,255,255,0.7); padding: 2px 6px; border-radius: 4px; pointer-events: none; z-index: 2;}
 
         .controls { margin-top: 20px; display: grid; gap: 10px; }
         
@@ -90,11 +99,7 @@
         .btn:active { transform: scale(0.97); }
         .btn-love { background: #FF5A92; }
         .btn-miss { background: #4FC3F7; color: #004D40; }
-        
-        .btn:disabled {
-            background: #ddd !important; color: #aaa !important;
-            cursor: not-allowed; transform: none !important;
-        }
+        .btn:disabled { background: #ddd !important; color: #aaa !important; cursor: not-allowed; }
 
         .status-badge {
             background: #fff; border: 1px solid #ddd; padding: 8px 15px;
@@ -108,12 +113,17 @@
 
         .hidden { display: none !important; }
         input.input-field { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; text-align: center; font-family: 'Indie Flower'; font-size: 18px; }
-        .loader { position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#333; font-size:12px; font-weight: bold; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 10px; z-index: 15;}
+        .loader { position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#333; font-size:12px; font-weight: bold; background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 12px; z-index: 15; box-shadow: 0 2px 10px rgba(0,0,0,0.1); white-space: nowrap;}
+        
+        .update-link { font-size: 10px; color: #bbb; text-decoration: underline; cursor: pointer; margin-left: 10px;}
     </style>
 </head>
 <body>
 
-    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <audio id="notif-sound">
+        <source src="notification.mp3" type="audio/mpeg">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="setup-screen" class="poster hidden">
         <h1 class="missing-title" style="font-size: 40px;">WHO ARE YOU?</h1>
@@ -135,20 +145,21 @@
 
         <h1 class="missing-title">MISSING</h1>
         
-        <div class="photo-frame">
+        <div class="photo-frame" id="photo-frame">
             <div class="upload-trigger" onclick="triggerUpload()"></div>
-
-            <div id="trash-btn" class="trash-btn hidden" onclick="deleteCurrentPhoto()">🗑️</div>
+            <div id="trash-btn" class="trash-btn hidden" onclick="deleteCurrentPhoto(event)">🗑️</div>
 
             <div id="empty-state" class="empty-state">
                 <div class="plus-icon">+</div>
-                <div class="add-text">add photo</div>
+                <div class="add-text">add photos</div>
             </div>
             
             <img id="slideshow-img" src="">
             <div id="upload-loader" class="loader hidden">Compressing...</div>
             
-            <input type="file" id="file-input" accept="image/*" style="display:none" onchange="processAndUpload(this)">
+            <div id="photo-counter" class="photo-counter hidden">0/20</div>
+
+            <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="processAndUpload(this)">
         </div>
 
         <h2 class="bottom-text">you so much</h2>
@@ -159,7 +170,11 @@
         </div>
 
         <button id="notify-btn" class="btn" style="background:#FF9800; font-size:12px; margin-top:15px;" onclick="requestPermission()">🔔 Enable Notifications</button>
-        <p onclick="resetApp()" style="font-size: 10px; color:#aaa; margin-top:20px; cursor:pointer;">Reset App</p>
+        
+        <div style="margin-top: 20px;">
+            <span onclick="resetApp()" style="font-size: 10px; color:#aaa; cursor:pointer;">Reset App</span>
+            <span onclick="window.location.reload()" class="update-link">Check for Updates ↻</span>
+        </div>
     </div>
 
     <script src="config.js"></script>
@@ -176,16 +191,16 @@
         const messaging = getMessaging(app);
         const storage = getStorage(app);
 
-        let photos = []; // Array of photo objects { url, id, path, user }
+        let photos = [];
         let photoIndex = 0;
         let slideInterval;
+        let interactionTimeout;
+        const PHOTO_LIMIT = 20; // 🟢 LIMIT SETTING
 
-        // --- 1. INITIALIZATION ---
         function checkState() {
             const urlParams = new URLSearchParams(window.location.search);
-            const inviteCode = urlParams.get('code');
-            if (inviteCode && !localStorage.getItem('mysm_code')) {
-                document.getElementById('partner-code').value = inviteCode;
+            if (urlParams.get('code') && !localStorage.getItem('mysm_code')) {
+                document.getElementById('partner-code').value = urlParams.get('code');
             }
             if (!localStorage.getItem('mysm_name')) {
                 document.getElementById('setup-screen').classList.remove('hidden');
@@ -197,82 +212,54 @@
         async function initApp() {
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('hidden');
-            const myName = localStorage.getItem('mysm_name');
             const myCode = localStorage.getItem('mysm_code');
+            const myName = localStorage.getItem('mysm_name');
 
             if (Notification.permission === "granted") {
                 document.getElementById('notify-btn').style.display = 'none';
                 syncToken();
             }
 
-            // Connection Listener
-            const qUser = query(collection(db, "users"), where("code", "==", myCode));
-            onSnapshot(qUser, (snapshot) => {
+            onSnapshot(query(collection(db, "users"), where("code", "==", myCode)), (snapshot) => {
                 let partnerName = null;
                 snapshot.forEach(doc => { if (doc.data().name !== myName) partnerName = doc.data().name; });
-                const statusText = document.getElementById('connection-text');
-                const statusDot = document.getElementById('status-dot');
-                const actionBtns = document.querySelectorAll('.action-btn');
-
-                if (partnerName) {
-                    statusText.innerText = `Connected: ${partnerName}`;
-                    statusDot.classList.add('online');
-                    actionBtns.forEach(btn => btn.disabled = false);
-                } else {
-                    statusText.innerText = "Waiting... Tap to Invite";
-                    statusDot.classList.remove('online');
-                    actionBtns.forEach(btn => btn.disabled = true);
-                }
+                const connected = !!partnerName;
+                document.getElementById('connection-text').innerText = connected ? `Connected: ${partnerName}` : "Waiting... Tap to Invite";
+                document.getElementById('status-dot').className = connected ? 'dot online' : 'dot';
+                document.querySelectorAll('.action-btn').forEach(btn => btn.disabled = !connected);
             });
 
-            // Message Listener
             onSnapshot(doc(db, "history", myCode), (doc) => {
                 const data = doc.data();
                 if (data && data.from !== myName && Date.now() - data.timestamp.toMillis() < 10000) {
-                    document.getElementById('notif-sound').play().catch(e => console.log("Audio blocked"));
+                    const audio = document.getElementById('notif-sound');
+                    audio.load(); // Reloads to check if notification.mp3 exists now
+                    audio.play().catch(e => {});
                 }
             });
 
-            // Load Photos
             loadPhotos(myCode);
+            initSwipeGestures();
         }
 
-        window.shareInvite = async () => {
-            const code = localStorage.getItem('mysm_code');
-            const url = `${window.location.origin}/?code=${code}`;
-            if (navigator.share) {
-                try { await navigator.share({ title: 'MYSM Invite', text: `Join code: ${code}`, url: url }); } catch (err) {}
-            } else {
-                navigator.clipboard.writeText(url); alert("Invite link copied!");
-            }
-        }
-
-        // --- 2. PHOTOS (UPLOAD & DELETE) ---
         async function loadPhotos(code) {
-            const q = query(collection(db, `rooms/${code}/photos`), orderBy("timestamp", "desc"));
-            
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, `rooms/${code}/photos`), orderBy("timestamp", "desc")), (snapshot) => {
                 photos = [];
-                // We now store the whole object so we can access ID and PATH
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    photos.push({
-                        id: doc.id,
-                        url: data.url,
-                        path: data.storagePath, // Needed for delete
-                        user: data.uploadedBy
-                    });
-                });
+                snapshot.forEach(doc => photos.push({ id: doc.id, ...doc.data() }));
                 
+                // Update Counter
+                const counter = document.getElementById('photo-counter');
+                counter.innerText = `${photos.length}/${PHOTO_LIMIT}`;
+                counter.classList.remove('hidden');
+
                 if (photos.length > 0) {
                     document.getElementById('empty-state').style.display = 'none';
-                    if (photoIndex >= photos.length) photoIndex = 0; // Reset index if photos deleted
+                    if (photoIndex >= photos.length) photoIndex = 0;
                     startSlideshow();
                 } else {
                     document.getElementById('slideshow-img').style.display = 'none';
                     document.getElementById('empty-state').style.display = 'block';
                     document.getElementById('trash-btn').classList.add('hidden');
-                    if(slideInterval) clearInterval(slideInterval);
                 }
             });
         }
@@ -283,12 +270,16 @@
             imgEl.style.display = 'block';
             updateSlideView();
 
-            if(photos.length > 1) {
-                slideInterval = setInterval(() => {
-                    photoIndex = (photoIndex + 1) % photos.length;
-                    updateSlideView();
-                }, 4000);
-            }
+            slideInterval = setInterval(() => {
+                photoIndex = (photoIndex + 1) % photos.length;
+                updateSlideView();
+            }, 4000);
+        }
+
+        function pauseSlideshow() {
+            if (slideInterval) clearInterval(slideInterval);
+            if (interactionTimeout) clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(startSlideshow, 10000);
         }
 
         function updateSlideView() {
@@ -296,83 +287,91 @@
             const currentPhoto = photos[photoIndex];
             document.getElementById('slideshow-img').src = currentPhoto.url;
             
-            // Show Trash Button ONLY if I uploaded this photo
             const myName = localStorage.getItem('mysm_name');
             const trashBtn = document.getElementById('trash-btn');
-            
-            if (currentPhoto.user === myName) {
-                trashBtn.classList.remove('hidden');
-            } else {
-                trashBtn.classList.add('hidden');
+            if (currentPhoto.uploadedBy === myName) trashBtn.classList.remove('hidden');
+            else trashBtn.classList.add('hidden');
+        }
+
+        function initSwipeGestures() {
+            const frame = document.getElementById('photo-frame');
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            frame.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                pauseSlideshow();
+            }, {passive: true});
+
+            frame.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, {passive: true});
+
+            function handleSwipe() {
+                const threshold = 50;
+                if (touchEndX < touchStartX - threshold) {
+                    photoIndex = (photoIndex + 1) % photos.length;
+                    updateSlideView();
+                }
+                if (touchEndX > touchStartX + threshold) {
+                    photoIndex = (photoIndex - 1 + photos.length) % photos.length;
+                    updateSlideView();
+                }
             }
         }
 
         window.triggerUpload = () => document.getElementById('file-input').click();
 
-        // New Delete Function
-        window.deleteCurrentPhoto = async () => {
-            // Stop slideshow temporarily so it doesn't flip while deleting
-            if (slideInterval) clearInterval(slideInterval);
+        window.processAndUpload = async (input) => {
+            if (!input.files || input.files.length === 0) return;
             
-            if(!confirm("Delete this photo for everyone?")) {
-                startSlideshow(); // Resume if cancelled
-                return;
+            // 🟢 1. CHECK LIMIT
+            if (photos.length >= PHOTO_LIMIT) {
+                return alert(`Room full! Delete some photos to add new ones. (Limit: ${PHOTO_LIMIT})`);
+            }
+            if (photos.length + input.files.length > PHOTO_LIMIT) {
+                return alert(`You can only upload ${PHOTO_LIMIT - photos.length} more photo(s).`);
             }
 
-            const photo = photos[photoIndex];
             const code = localStorage.getItem('mysm_code');
-            const trashBtn = document.getElementById('trash-btn');
-            trashBtn.innerText = "⏳"; // Visual feedback
+            const loader = document.getElementById('upload-loader');
+            loader.classList.remove('hidden');
 
-            try {
-                // 1. Delete from Firestore
-                await deleteDoc(doc(db, `rooms/${code}/photos`, photo.id));
-                
-                // 2. Delete from Storage (Clean up the file)
-                if (photo.path) {
-                    const fileRef = ref(storage, photo.path);
-                    await deleteObject(fileRef);
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                loader.innerText = `Uploading ${i+1}/${input.files.length}...`;
+
+                try {
+                    const compressedBlob = await compressImage(file);
+                    const path = `photos/${code}/${Date.now()}_${i}.jpg`;
+                    const storageRef = ref(storage, path);
+                    
+                    await uploadBytes(storageRef, compressedBlob);
+                    const url = await getDownloadURL(storageRef);
+                    
+                    await addDoc(collection(db, `rooms/${code}/photos`), {
+                        url: url, storagePath: path, uploadedBy: localStorage.getItem('mysm_name'), timestamp: serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error("Upload failed", error);
                 }
-
-                alert("Deleted.");
-                // Note: The onSnapshot listener will auto-update the UI!
-                
-            } catch (error) {
-                console.error(error);
-                alert("Could not delete. Check console.");
-                trashBtn.innerText = "🗑️";
             }
+            
+            loader.classList.add('hidden');
+            alert("Photos uploaded!");
         };
 
-        window.processAndUpload = async (input) => {
-            if (!input.files[0]) return;
-            const file = input.files[0];
-            const code = localStorage.getItem('mysm_code');
-            document.getElementById('upload-loader').classList.remove('hidden');
-
+        window.deleteCurrentPhoto = async (e) => {
+            e.stopPropagation();
+            if (slideInterval) clearInterval(slideInterval);
+            if(!confirm("Delete this photo?")) { startSlideshow(); return; }
+            
+            const photo = photos[photoIndex];
             try {
-                const compressedBlob = await compressImage(file);
-                
-                // Create unique path
-                const path = `photos/${code}/${Date.now()}.jpg`;
-                const storageRef = ref(storage, path);
-                
-                await uploadBytes(storageRef, compressedBlob);
-                const url = await getDownloadURL(storageRef);
-                
-                // SAVE PATH TO DB SO WE CAN DELETE LATER
-                await addDoc(collection(db, `rooms/${code}/photos`), {
-                    url: url, 
-                    storagePath: path, // <--- Critical for deletion
-                    uploadedBy: localStorage.getItem('mysm_name'), 
-                    timestamp: serverTimestamp()
-                });
-                
-            } catch (error) {
-                alert("Upload failed.");
-            } finally {
-                document.getElementById('upload-loader').classList.add('hidden');
-            }
+                await deleteDoc(doc(db, `rooms/${localStorage.getItem('mysm_code')}/photos`, photo.id));
+                if (photo.storagePath) await deleteObject(ref(storage, photo.storagePath));
+            } catch (err) { alert("Error deleting"); }
         };
 
         function compressImage(file) {
@@ -385,7 +384,6 @@
                     let w = img.width, h = img.height;
                     if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
                     else { if (h > MAX) { w *= MAX/h; h = MAX; } }
-                    
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
@@ -405,7 +403,6 @@
         };
 
         window.sendLove = async (msg) => {
-            if(!document.getElementById('status-dot').classList.contains('online')) return alert("Wait for partner!");
             const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = "Sent! 💌";
@@ -423,12 +420,20 @@
             }
         }
 
+        window.shareInvite = async () => {
+            const code = localStorage.getItem('mysm_code');
+            const url = `${window.location.origin}/?code=${code}`;
+            if (navigator.share) try { await navigator.share({ title: 'MYSM', text: `Join code: ${code}`, url: url }); } catch (err) {}
+            else { navigator.clipboard.writeText(url); alert("Link copied!"); }
+        }
+
         window.requestPermission = async () => {
              const permission = await Notification.requestPermission();
              if (permission === 'granted') location.reload();
         };
 
-        window.resetApp = () => { if(confirm("Reset app?")) { localStorage.clear(); location.reload(); } };
+        window.resetApp = () => { if(confirm("Reset?")) { localStorage.clear(); location.reload(); } };
+        
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/firebase-messaging-sw.js');
         checkState();
     </script>
