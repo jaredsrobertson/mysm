@@ -1,557 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MYSM</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#FFFFFF">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Oswald:wght@500;700&family=Indie+Flower&display=swap" rel="stylesheet">
-    
-    <style>
-        /* --- THEMES --- */
-        :root {
-            /* Default: Poster Theme */
-            --bg: #E0E0E0;
-            --paper: #FFF;
-            --text: #000;
-            --font-head: 'Oswald', sans-serif;
-            --font-body: 'Indie Flower', cursive;
-            --font-logo: 'Pacifico', cursive;
-            --btn-radius: 50px;
-            --shadow: 0 10px 30px rgba(0,0,0,0.15);
-            --accent: #FF5A92;
-            --input-bg: transparent;
-            --input-border: 1px solid #ccc;
-        }
+<script src="config.js"></script>
 
-        /* Minimal Theme Override */
-        body.theme-minimal {
-            --bg: #FFC0CB;
-            --paper: transparent;
-            --text: #4A4A4A;
-            --font-head: -apple-system, system-ui, sans-serif;
-            --font-body: -apple-system, system-ui, sans-serif;
-            --btn-radius: 16px;
-            --shadow: none;
-            --input-bg: rgba(255,255,255,0.8); /* White inputs on pink */
-            --input-border: none;
-            background-image: none;
-        }
-
-        body {
-            font-family: var(--font-body);
-            background-color: var(--bg);
-            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            min-height: 100vh; padding: 10px 20px 40px 20px;
-            box-sizing: border-box;
-            background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
-            background-size: 20px 20px;
-            transition: background 0.3s;
-            overflow-x: hidden;
-        }
-        
-        body.theme-minimal .poster { transform: none; padding: 10px; margin-top: 0; }
-        body.theme-minimal .poster::before { display: none; }
-        /* Strictly hide APP elements in minimal */
-        body.theme-minimal .missing-title { display: none !important; } 
-        body.theme-minimal .bottom-text { display: none !important; }
-        body.theme-minimal .logo { color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        body.theme-minimal .history-item { background: rgba(255,255,255,0.6); }
-        body.theme-minimal .toggle-icon { stroke: rgba(255,255,255,0.8); }
-
-        /* --- LOGO & TOP BAR --- */
-        .top-bar {
-            width: 100%; max-width: 360px; display: flex; justify-content: flex-end; 
-            position: absolute; top: 10px; right: 20px; z-index: 50; gap: 10px;
-        }
-        .icon-btn { background: rgba(255,255,255,0.6); border: none; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        .logo {
-            font-family: var(--font-logo); font-size: 38px; color: #333; 
-            margin-bottom: 5px; z-index: 10; font-weight: normal; letter-spacing: 1px;
-        }
-
-        /* --- POSTER & SETUP UI --- */
-        .poster {
-            background: var(--paper); padding: 20px 20px 40px 20px;
-            box-shadow: var(--shadow); width: 100%; max-width: 360px;
-            text-align: center; transform: rotate(-1deg); transition: all 0.3s;
-            position: relative; margin-top: 10px; margin-bottom: 20px;
-        }
-        .poster::before {
-            content: ''; position: absolute; top: -15px; left: 50%; width: 120px; height: 35px; 
-            background: rgba(255,255,255,0.4); border: 1px solid rgba(0,0,0,0.05); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); transform: translateX(-50%) rotate(2deg);
-        }
-
-        /* App Title (Missing) */
-        h1.missing-title {
-            font-family: var(--font-head); font-size: 52px; margin: 0;
-            letter-spacing: 2px; text-transform: uppercase; color: var(--text); line-height: 1;
-        }
-
-        /* Setup Title (Welcome) - Persists in Minimal */
-        h1.welcome-title {
-            font-family: var(--font-head); font-size: 32px; margin: 0 0 20px 0;
-            letter-spacing: 2px; text-transform: uppercase; color: var(--text); line-height: 1;
-        }
-        body.theme-minimal .welcome-title { letter-spacing: 0; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
-        /* Input Styling */
-        input.input-field {
-            width: 80%; padding: 15px; font-size: 16px; margin-bottom: 15px; 
-            border-radius: 12px; border: var(--input-border);
-            background: var(--input-bg); font-family: var(--font-body);
-            text-align: center;
-        }
-
-        /* --- PHOTO FRAME --- */
-        .photo-container {
-            width: 80%; aspect-ratio: 1/1; margin: 15px auto 5px auto;
-            position: relative; overflow: hidden;
-            background: #f8f8f8; border: 2px solid #000;
-            border-radius: 2px; display: flex; 
-            transition: height 0.3s ease, opacity 0.3s ease, margin 0.3s;
-        }
-        body.theme-minimal .photo-container { border: 4px solid white; border-radius: 24px; background: #FAFAFA; width: 85%; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        
-        .photo-track { display: flex; height: 100%; width: 100%; transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .slide { min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .slide img { width: 100%; height: 100%; object-fit: cover; }
-        .photos-hidden { height: 0; margin: 0 auto; opacity: 0; border: none !important; }
-
-        .overlay-btn {
-            position: absolute; width: 32px; height: 32px; background: rgba(255,255,255,0.9);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; z-index: 20; font-size: 16px; border: none;
-        }
-        .manage-btn { bottom: 10px; right: 10px; color: #333; }
-        .photo-counter { 
-            position: absolute; bottom: 10px; left: 10px; 
-            background: rgba(0,0,0,0.5); color: white; 
-            font-size: 10px; padding: 2px 6px; border-radius: 4px; 
-            font-family: sans-serif; pointer-events: none; z-index: 2;
-        }
-
-        /* --- INFO ROW --- */
-        .info-row {
-            width: 80%; margin: 0 auto 20px auto; 
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        body.theme-minimal .info-row { width: 85%; }
-
-        .connected-badge {
-            background: rgba(255,255,255,0.6); padding: 5px 10px; border-radius: 20px;
-            font-size: 11px; color: #555; display: inline-flex; align-items: center; gap: 5px; font-weight: bold;
-        }
-        
-        .small-toggle {
-            background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 5px; opacity: 0.6; transition: opacity 0.2s;
-        }
-        .small-toggle:active { opacity: 1; }
-        .toggle-icon { width: 20px; height: 20px; stroke: #333; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-        .arrow-icon { width: 12px; height: 12px; stroke: #333; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s ease; }
-        .toggle-collapsed .arrow-icon { transform: rotate(-90deg); }
-
-        h2.bottom-text { font-family: 'Oswald', sans-serif; font-size: 24px; margin: 0 0 20px 0; text-transform: lowercase; font-weight: 500; color: #000; }
-
-        /* --- BUTTONS --- */
-        .btn {
-            display: block; width: 100%; padding: 16px; border: none; border-radius: var(--btn-radius);
-            font-size: 18px; font-weight: bold; cursor: pointer; color: white;
-            transition: transform 0.1s; font-family: var(--font-body); margin-bottom: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn-love { background: #FF5A92; }
-        .btn-miss { background: #4FC3F7; color: #004D40; }
-        .btn-think { background: #9575CD; }
-        .btn-invite { background: #2ecc71; margin-top: 15px; color: white; } 
-        .btn:disabled { background: #ddd !important; color: #aaa !important; cursor: not-allowed; box-shadow: none; }
-        .btn-reset { background: transparent; color: #999; border: 2px solid #ddd; font-size: 14px; padding: 12px; margin-top: 30px; }
-
-        /* --- MODAL & GRID --- */
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; display: flex; flex-direction: column; padding: 20px; backdrop-filter: blur(5px); }
-        .modal-content { background: white; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; text-align: center; }
-        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0; }
-        .grid-item { aspect-ratio: 1/1; background: #eee; border-radius: 8px; overflow: hidden; position: relative; }
-        .grid-item img { width: 100%; height: 100%; object-fit: cover; }
-        .reorder-controls { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: space-between; }
-        .arrow-btn { color: white; border: none; background: none; font-size: 16px; padding: 5px 8px; cursor: pointer; }
-        .grid-del { position: absolute; top: 2px; right: 2px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
-        /* --- HISTORY --- */
-        .history-feed { width: 100%; margin-top: 10px; max-height: 150px; overflow-y: auto; }
-        .history-item { background: #f1f1f1; padding: 8px 12px; margin-bottom: 6px; border-radius: 12px; text-align: left; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .timestamp { color: #999; font-size: 10px; }
-
-        .hidden { display: none !important; }
-        .loader { position: absolute; background: white; padding: 5px 10px; border-radius: 10px; z-index: 10; font-size: 12px; top: 50%; left: 50%; transform: translate(-50%, -50%);}
-        
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-    </style>
-</head>
-<body class="theme-poster">
-
-    <audio id="notif-sound">
-        <source src="notification.mp3" type="audio/mpeg">
-        <source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg">
-    </audio>
-
-    <div id="toast"></div>
-    <div class="logo">Mysm</div>
-
-    <div class="top-bar">
-        <button class="icon-btn" onclick="toggleTheme()">🎨</button>
-    </div>
-
-    <div id="setup-screen" class="poster hidden">
-        <h1 class="welcome-title">WELCOME</h1>
-        <p>Create a room or join a partner.</p>
-        <input type="text" id="my-name" class="input-field" placeholder="Your Name">
-        <button class="btn btn-love" onclick="createRoom()">Create New Room</button>
-    </div>
-
-    <div id="app-screen" class="poster hidden">
-        
-        <h1 class="missing-title">MISSING</h1>
-        
-        <div class="photo-container" id="photo-container">
-            <div class="photo-track" id="photo-track">
-                <div class="slide" id="empty-state" style="color:#ccc; cursor:pointer;" onclick="openManager()">
-                    + Add Photos
-                </div>
-            </div>
-            <div id="photo-counter" class="photo-counter hidden">0/20</div>
-            <button class="overlay-btn manage-btn" onclick="openManager()">⚙️</button>
-            <div id="slide-loader" class="loader hidden">Loading...</div>
-        </div>
-
-        <div class="info-row">
-            <div class="connected-badge">
-                <span style="color:#2ecc71;">●</span> 
-                <span id="connected-names">Waiting...</span>
-            </div>
-            
-            <button class="small-toggle" id="photo-toggle-btn" onclick="togglePhotos()">
-                <svg class="toggle-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                <svg class="arrow-icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-        </div>
-
-        <h2 class="bottom-text">you so much</h2>
-
-        <button class="btn btn-love action-btn" onclick="sendLove('I Love You! ❤️')" disabled>I Love You ❤️</button>
-        <button class="btn btn-miss action-btn" onclick="sendLove('I Miss You 🥺')" disabled>I Miss You 🥺</button>
-        <button class="btn btn-think action-btn" onclick="sendLove('Thinking of You 💭')" disabled>Thinking of You 💭</button>
-        
-        <div id="history-feed" class="history-feed"></div>
-
-        <button class="btn btn-invite" onclick="shareLink()">📲 Invite Partner</button>
-        <button id="notify-btn" class="btn" style="background:#FF9800; font-size:14px; margin-top:10px;" onclick="requestPermission()">🔔 Enable Notifications</button>
-        <button class="btn btn-reset" onclick="resetApp()">🔄 Reset / Sign Out</button>
-    </div>
-
-    <div id="manager-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>Manage Photos</h3>
-            <p>Use arrows to reorder.</p>
-            <div id="grid-container" class="photo-grid"></div>
-            <input type="file" id="file-input" multiple accept="image/*" style="display:none" onchange="handleUpload(this)">
-            <button class="btn btn-love" onclick="document.getElementById('file-input').click()">+ Add Photos</button>
-            <button class="btn btn-grey" onclick="closeModal('manager-modal')">Close</button>
-        </div>
-    </div>
-
-    <script src="config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, arrayUnion, getDoc, onSnapshot, collection, query, orderBy, limit, addDoc, deleteDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js";
 
-        if (!self.MYSM_CONFIG) alert("Missing config.js!");
-        const app = initializeApp(self.MYSM_CONFIG.firebase);
-        const auth = getAuth(app);
+        // Check if config loaded
+        if (!self.MYSM_CONFIG) {
+            alert("Error: config.js is missing! Create it from config.example.js");
+        }
+
+        // LOAD CONFIG FROM THE EXTERNAL FILE
+        const firebaseConfig = self.MYSM_CONFIG.firebase;
+        const VAPID_KEY = self.MYSM_CONFIG.vapidKey;
+
+        const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const messaging = getMessaging(app);
-        const storage = getStorage(app);
 
-        let currentUser = null;
-        let currentRoomId = null;
-        let photos = [];
-        let photoIndex = 0;
-        let slideInterval;
-        let interactionTimeout;
-        let photosVisible = true;
+        // --- GLOBAL VARIABLES ---
+        let deferredPrompt; 
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) { currentUser = user; checkRoute(); }
-            else { signInAnonymously(auth); }
+        // --- Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then((registration) => {
+                    console.log('Service Worker Registered');
+                });
+        }
+
+        // --- 1. FLOW CONTROLLER ---
+        function checkState() {
+            const isStandardStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isIosStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
+            const isApp = isStandardStandalone || isIosStandalone;
+
+            if (isMobile && !isApp) {
+                document.getElementById('install-screen').classList.remove('hidden');
+                if(isIos) document.getElementById('ios-install-area').classList.remove('hidden');
+                else document.getElementById('android-install-area').classList.remove('hidden');
+            } 
+            else if (!localStorage.getItem('mysm_name')) {
+                document.getElementById('setup-screen').classList.remove('hidden');
+            } 
+            else {
+                showMainApp();
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
         });
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        }
-
-        async function checkRoute() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomId = urlParams.get('room');
-            if (roomId) joinRoom(roomId);
-            else document.getElementById('setup-screen').classList.remove('hidden');
-        }
-
-        window.createRoom = async () => {
-            const name = document.getElementById('my-name').value;
-            if (!name) return alert("Enter name!");
-            
-            // 🟢 CHANGED: Save selected theme to DB
-            const isMinimal = document.body.classList.contains('theme-minimal');
-            const initialTheme = isMinimal ? 'minimal' : 'poster';
-
-            const roomId = crypto.randomUUID();
-            await setDoc(doc(db, "rooms", roomId), { created: serverTimestamp(), members: [currentUser.uid], theme: initialTheme });
-            await setDoc(doc(db, "users", currentUser.uid), { name: name, roomId: roomId });
-            window.history.pushState({}, "", `?room=${roomId}`);
-            joinRoom(roomId);
+        window.triggerAndroidInstall = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') console.log('User accepted');
+                deferredPrompt = null;
+            } else {
+                alert("To install, tap the Chrome menu (3 dots) and select 'Install App'");
+            }
         };
 
-        async function joinRoom(roomId) {
-            currentRoomId = roomId;
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            
-            const roomRef = doc(db, "rooms", roomId);
-            await updateDoc(roomRef, { members: arrayUnion(currentUser.uid) });
-            
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            if (!userDoc.exists()) {
-                const name = prompt("What is your name?");
-                if(name) await setDoc(doc(db, "users", currentUser.uid), { name: name, roomId: roomId });
-            }
+        window.saveUser = async () => {
+            const name = document.getElementById('my-name').value.trim();
+            const code = document.getElementById('partner-code').value.trim();
+            if(!name || !code) return alert("Please fill in both!");
 
+            localStorage.setItem('mysm_name', name);
+            localStorage.setItem('mysm_code', code);
+
+            document.getElementById('setup-screen').classList.add('hidden');
+            checkState();
+
+            setDoc(doc(db, "users", name + "_" + code), {
+                name: name, code: code, last_seen: serverTimestamp()
+            }, { merge: true }).catch((error) => console.error("Sync error:", error));
+        };
+
+        async function showMainApp() {
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('welcome-msg').innerText = `Hi, ${localStorage.getItem('mysm_name')}!`;
+            
             if (Notification.permission === "granted") {
                 document.getElementById('notify-btn').style.display = 'none';
-                syncToken();
-            }
-
-            initListeners();
-            initSwipeGestures();
-        }
-
-        function initListeners() {
-            onSnapshot(doc(db, "rooms", currentRoomId), async (roomSnap) => {
-                if(!roomSnap.exists()) return;
-                const data = roomSnap.data();
+                document.getElementById('status-msg').style.display = 'block';
                 
-                // Theme Sync
-                const prevTheme = document.body.className;
-                const newTheme = `theme-${data.theme}`;
-                
-                if (prevTheme !== newTheme) {
-                    document.body.className = newTheme;
-                    // Auto-toggle photos based on theme default
-                    if (data.theme === 'minimal') setPhotoVisibility(false);
-                    else setPhotoVisibility(true);
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+                    
+                    const name = localStorage.getItem('mysm_name');
+                    const code = localStorage.getItem('mysm_code');
+                    await setDoc(doc(db, "users", name + "_" + code), { fcmToken: token }, { merge: true });
+                } catch(e) {
+                    console.error("Silent token refresh failed:", e);
                 }
-
-                const memberNames = [];
-                for(const uid of data.members) {
-                    const uSnap = await getDoc(doc(db, "users", uid));
-                    if(uSnap.exists()) memberNames.push(uSnap.data().name);
-                }
-                document.getElementById('connected-names').innerText = memberNames.join(" & ");
-                document.querySelectorAll('.action-btn').forEach(btn => btn.disabled = false);
-            });
-
-            onSnapshot(query(collection(db, `rooms/${currentRoomId}/photos`), orderBy("order")), (snapshot) => {
-                photos = [];
-                snapshot.forEach(doc => photos.push({id: doc.id, ...doc.data()}));
-                renderSlideshowDOM();
-                updateSlideshow();
-                updateGrid();
-            });
-
-            onSnapshot(query(collection(db, `rooms/${currentRoomId}/history`), orderBy("timestamp", "desc"), limit(5)), (snapshot) => {
-                const historyEl = document.getElementById('history-feed');
-                historyEl.innerHTML = "";
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const div = document.createElement('div');
-                    div.className = "history-item";
-                    div.innerHTML = `<span><b>${data.from}</b>: ${data.content}</span> <span class="timestamp">${new Date(data.timestamp?.toMillis()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
-                    historyEl.appendChild(div);
-                    const timeDiff = Date.now() - (data.timestamp?.toMillis() || 0);
-                    if (data.fromId !== currentUser.uid && timeDiff < 5000) {
-                        document.getElementById('notif-sound').play().catch(()=>{});
-                        showToast(`New message from ${data.from}`);
-                    }
-                });
-            });
-        }
-
-        function showToast(text) {
-            const toast = document.getElementById('toast'); toast.innerText = text; toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function renderSlideshowDOM() {
-            const track = document.getElementById('photo-track');
-            track.innerHTML = "";
-            if (photos.length === 0) {
-                track.innerHTML = '<div class="slide" style="color:#ccc; cursor:pointer;" onclick="openManager()">+ Add Photos</div>';
-            } else {
-                photos.forEach(photo => {
-                    const slide = document.createElement('div');
-                    slide.className = "slide";
-                    slide.innerHTML = `<img src="${photo.url}">`;
-                    track.appendChild(slide);
-                });
             }
         }
 
-        function updateSlideshow() {
-            const counter = document.getElementById('photo-counter');
-            if (photos.length === 0) { counter.classList.add('hidden'); return; }
-            counter.classList.remove('hidden');
-            counter.innerText = `${photos.length}/20`;
-            if (!slideInterval) { slideInterval = setInterval(() => { nextSlide(); }, 4000); }
-            updateTrackPosition();
-        }
-
-        function updateTrackPosition() {
-            const track = document.getElementById('photo-track');
-            track.style.transform = `translateX(-${photoIndex * 100}%)`;
-        }
-        function nextSlide() { photoIndex = (photoIndex + 1) % photos.length; updateTrackPosition(); }
-        function prevSlide() { photoIndex = (photoIndex - 1 + photos.length) % photos.length; updateTrackPosition(); }
-        function pauseSlideshow() {
-            if (slideInterval) clearInterval(slideInterval);
-            if (interactionTimeout) clearTimeout(interactionTimeout);
-            interactionTimeout = setTimeout(() => { slideInterval = setInterval(nextSlide, 4000); }, 10000);
-        }
-
-        // 🟢 CHANGED: Smart Theme Toggle
-        window.toggleTheme = () => {
-            const isPoster = document.body.classList.contains('theme-poster');
-            const newTheme = isPoster ? 'minimal' : 'poster';
-            
-            // Local Update (Instant)
-            document.body.className = `theme-${newTheme}`;
-            if(newTheme === 'minimal') setPhotoVisibility(false);
-            else setPhotoVisibility(true);
-
-            // DB Update (If room exists)
-            if (currentRoomId) {
-                updateDoc(doc(db, "rooms", currentRoomId), { theme: newTheme });
-            }
-        };
-
-        window.togglePhotos = () => { setPhotoVisibility(!photosVisible); };
-        
-        function setPhotoVisibility(visible) {
-            photosVisible = visible;
-            const container = document.getElementById('photo-container');
-            const toggleBtn = document.getElementById('photo-toggle-btn');
-            
-            if (visible) {
-                container.classList.remove('photos-hidden');
-                toggleBtn.classList.remove('toggle-collapsed');
-            } else {
-                container.classList.add('photos-hidden');
-                toggleBtn.classList.add('toggle-collapsed');
-            }
-        }
-
-        function initSwipeGestures() {
-            const frame = document.getElementById('photo-container');
-            let startX = 0;
-            frame.addEventListener('touchstart', e => { startX = e.changedTouches[0].screenX; pauseSlideshow(); }, {passive: true});
-            frame.addEventListener('touchend', e => {
-                const endX = e.changedTouches[0].screenX;
-                if (endX < startX - 50) nextSlide();
-                if (endX > startX + 50) prevSlide();
-            }, {passive: true});
-        }
-
-        function updateGrid() {
-            const grid = document.getElementById('grid-container');
-            grid.innerHTML = "";
-            photos.forEach((photo, index) => {
-                const div = document.createElement('div');
-                div.className = "grid-item";
-                const leftArrow = index > 0 ? `<button class="arrow-btn" onclick="movePhoto('${photo.id}', -1)">◀</button>` : '';
-                const rightArrow = index < photos.length - 1 ? `<button class="arrow-btn" onclick="movePhoto('${photo.id}', 1)">▶</button>` : '';
-                div.innerHTML = `<img src="${photo.url}"><div class="reorder-controls">${leftArrow}<span style="flex-grow:1;"></span>${rightArrow}</div><div class="grid-del" onclick="deletePhoto('${photo.id}', '${photo.path}')">X</div>`;
-                grid.appendChild(div);
-            });
-        }
-
-        window.movePhoto = async (photoId, direction) => {
-            const currentIndex = photos.findIndex(p => p.id === photoId);
-            if (currentIndex === -1) return;
-            const targetIndex = currentIndex + direction;
-            if (targetIndex < 0 || targetIndex >= photos.length) return;
-            const photoA = photos[currentIndex];
-            const photoB = photos[targetIndex];
-            const batch = writeBatch(db);
-            batch.update(doc(db, `rooms/${currentRoomId}/photos`, photoA.id), { order: targetIndex });
-            batch.update(doc(db, `rooms/${currentRoomId}/photos`, photoB.id), { order: currentIndex });
-            await batch.commit();
-        };
-
-        window.handleUpload = async (input) => {
-            if (photos.length >= 20) return alert("Room full (20 max)");
-            for (const file of input.files) {
-                const compressed = await compressImage(file);
-                const path = `rooms/${currentRoomId}/${Date.now()}.jpg`;
-                const storageRef = ref(storage, path);
-                await uploadBytes(storageRef, compressed);
-                const url = await getDownloadURL(storageRef);
-                await addDoc(collection(db, `rooms/${currentRoomId}/photos`), {
-                    url: url, path: path, order: photos.length, uploadedBy: currentUser.uid
-                });
-            }
-            alert("Uploaded!");
-        };
-        window.deletePhoto = async (id, path) => { if(!confirm("Delete?")) return; await deleteDoc(doc(db, `rooms/${currentRoomId}/photos`, id)); await deleteObject(ref(storage, path)); };
-        window.sendLove = async (msg) => {
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            await addDoc(collection(db, `rooms/${currentRoomId}/history`), {
-                content: msg, from: userDoc.data().name, fromId: currentUser.uid, timestamp: serverTimestamp()
-            });
-        };
-        async function syncToken() {
-            if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                const token = await getToken(messaging, { vapidKey: self.MYSM_CONFIG.vapidKey, serviceWorkerRegistration: reg });
-                await setDoc(doc(db, "users", currentUser.uid), { fcmToken: token }, { merge: true });
-            }
-        }
         window.requestPermission = async () => {
-             const permission = await Notification.requestPermission();
-             if (permission === 'granted') { document.getElementById('notify-btn').style.display = 'none'; syncToken(); }
-        };
-        window.shareLink = () => { navigator.clipboard.writeText(window.location.href); alert("Link copied!"); };
-        window.resetApp = () => { if(confirm("Sign out?")) { auth.signOut(); window.location.href = "/"; } };
-        window.openManager = () => document.getElementById('manager-modal').classList.remove('hidden');
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-        function compressImage(file) {
-            return new Promise((resolve) => {
-                const img = new Image(); img.src = URL.createObjectURL(file);
-                img.onload = () => {
-                    const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
-                    const max = 1024; let w=img.width, h=img.height;
-                    if(w>max || h>max) { const ratio=max/Math.max(w,h); w*=ratio; h*=ratio; }
-                    cvs.width=w; cvs.height=h; ctx.drawImage(img,0,0,w,h);
-                    cvs.toBlob(resolve, 'image/jpeg', 0.8);
-                };
-            });
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    showMainApp(); 
+                } else {
+                    alert("Notifications denied. Please enable them in settings.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error: " + error.message);
+            }
         }
+
+        window.sendLove = async (msg) => {
+           try {
+               const btn = event.target; 
+               const originalText = btn.innerText;
+               btn.innerText = "Sent! 💌";
+               setTimeout(() => btn.innerText = originalText, 2000);
+
+               const name = localStorage.getItem('mysm_name');
+               const code = localStorage.getItem('mysm_code');
+               
+               await setDoc(doc(db, "history", code), {
+                   last_message: msg, from: name, timestamp: serverTimestamp(), trigger_id: Date.now()
+               }, { merge: true });
+           } catch (error) { alert("Error: " + error.message); }
+        }
+
+        window.resetApp = () => {
+            if(confirm("Sign out?")) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        };
+
+        checkState();
     </script>
-</body>
-</html>
