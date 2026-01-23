@@ -1,23 +1,31 @@
 {
-  "name": "functions",
-  "description": "Cloud Functions for Firebase",
+  "name": "mysm",
+  "version": "2.0.0",
+  "description": "Missing You So Much - A couples messaging PWA",
   "scripts": {
-    "serve": "firebase emulators:start --only functions",
-    "shell": "firebase functions:shell",
-    "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "setup": "cd functions && npm install",
+    "serve": "firebase serve",
+    "deploy": "firebase deploy",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "emulators": "firebase emulators:start",
+    "logs": "firebase functions:log",
+    "check": "node -e \"console.log(require('fs').existsSync('public/config.js') ? '✅ config.js exists' : '❌ Create public/config.js from config.example.js')\"",
+    "init": "npm run setup && npm run check"
   },
-  "engines": {
-    "node": "22"
-  },
-  "main": "index.js",
-  "dependencies": {
-    "firebase-admin": "^13.0.0",
-    "firebase-functions": "^6.0.0"
-  },
-  "devDependencies": {
-    "firebase-functions-test": "^3.1.0"
-  },
-  "private": true
+  "keywords": [
+    "pwa",
+    "firebase",
+    "messaging",
+    "couples",
+    "notifications"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
 }

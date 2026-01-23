@@ -1,8 +1,304 @@
-<script src="config.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFC0CB">
+    <title>MYSM - Missing You So Much</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #FFC0CB 0%, #FFB6C1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .screen {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .hidden {
+            display: none !important;
+        }
+        h1 {
+            color: #FF69B4;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #FF69B4;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #FFD1DC;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #FF69B4;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #FF69B4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #FF1493;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .secondary-btn {
+            background: #FFB6C1;
+        }
+        .secondary-btn:hover {
+            background: #FFA6B1;
+        }
+        .message-btn {
+            background: linear-gradient(135deg, #FF69B4, #FF1493);
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding: 20px;
+        }
+        .emoji {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .info-box {
+            background: #FFF0F5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #FFD1DC;
+        }
+        .info-box strong {
+            color: #FF69B4;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .info-box code {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF69B4;
+        }
+        .steps {
+            background: #FFF0F5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .steps ol {
+            margin-left: 20px;
+        }
+        .steps li {
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .loading {
+            text-align: center;
+            color: #FF69B4;
+            font-size: 18px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-right: 5px;
+        }
+        .reset-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .reset-link a {
+            color: #FF69B4;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: #FFD1DC;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tab.active {
+            background: #FF69B4;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
 
+    <!-- Install Screen -->
+    <div id="install-screen" class="screen hidden">
+        <h1>💕 MYSM</h1>
+        <p style="text-align: center; font-size: 14px; color: #999;">Missing You So Much</p>
+        
+        <div id="android-install-area" class="hidden">
+            <h2>Install the App</h2>
+            <p>For the best experience, install MYSM as an app on your device!</p>
+            <button onclick="triggerAndroidInstall()">📲 Install Now</button>
+            <p style="font-size: 12px; color: #999; text-align: center;">
+                If the button doesn't work, tap the menu (⋮) and select "Install App"
+            </p>
+        </div>
+
+        <div id="ios-install-area" class="hidden">
+            <h2>Install the App</h2>
+            <div class="steps">
+                <ol>
+                    <li>Tap the Share button <strong>⎋</strong> at the bottom</li>
+                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                    <li>Tap <strong>"Add"</strong> in the top right</li>
+                    <li>Open the app from your home screen</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen" class="screen hidden">
+        <h1>💕 Welcome to MYSM</h1>
+        <p style="text-align: center; font-size: 14px; color: #999; margin-bottom: 20px;">
+            Missing You So Much
+        </p>
+        
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('create')">Create Room</button>
+            <button class="tab" onclick="switchTab('join')">Join Room</button>
+        </div>
+
+        <!-- Create Room Tab -->
+        <div id="create-tab" class="tab-content active">
+            <p>Create a private room and share the code with your partner.</p>
+            <input type="text" id="create-name" placeholder="Your Name" maxlength="30">
+            <input type="text" id="create-code" placeholder="Choose a Room Code (e.g., ourroom2025)" maxlength="20">
+            <button onclick="createRoom()">Create Room</button>
+        </div>
+
+        <!-- Join Room Tab -->
+        <div id="join-tab" class="tab-content">
+            <p>Enter the room code your partner shared with you.</p>
+            <input type="text" id="join-name" placeholder="Your Name" maxlength="30">
+            <input type="text" id="join-code" placeholder="Room Code" maxlength="20">
+            <button onclick="joinRoom()">Join Room</button>
+        </div>
+
+        <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+            💡 Tip: Choose a memorable code only you two know
+        </p>
+    </div>
+
+    <!-- App Screen -->
+    <div id="app-screen" class="screen hidden">
+        <h1 id="welcome-msg">Hi! 💕</h1>
+        
+        <div id="room-info" class="info-box">
+            <strong>Your Room Code:</strong>
+            <code id="display-code">----</code>
+            <p style="font-size: 12px; color: #999; margin-top: 10px;">Share this code with your partner</p>
+        </div>
+
+        <div id="notify-area">
+            <button id="notify-btn" onclick="requestPermission()">
+                🔔 Enable Notifications
+            </button>
+            <div id="status-msg" class="info-box hidden">
+                <span class="status-indicator"></span>
+                <span style="color: #4CAF50; font-weight: bold;">Notifications Active</span>
+            </div>
+        </div>
+
+        <h2>Send a Message</h2>
+        
+        <button class="message-btn" onclick="sendLove('Missing you so much! 💕')">
+            <span class="emoji">💕</span> Missing you!
+        </button>
+        
+        <button class="message-btn" onclick="sendLove('Thinking of you right now 💭')">
+            <span class="emoji">💭</span> Thinking of you
+        </button>
+        
+        <button class="message-btn" onclick="sendLove('Love you! ❤️')">
+            <span class="emoji">❤️</span> Love you!
+        </button>
+        
+        <button class="message-btn" onclick="sendLove('Can\'t wait to see you! 🥰')">
+            <span class="emoji">🥰</span> Can't wait to see you!
+        </button>
+
+        <div class="reset-link">
+            <a href="#" onclick="resetApp(); return false;">Sign Out</a>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen">
+        <div class="loading">
+            <h1>💕</h1>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
 
         // Check if config loaded
@@ -10,46 +306,72 @@
             alert("Error: config.js is missing! Create it from config.example.js");
         }
 
-        // LOAD CONFIG FROM THE EXTERNAL FILE
+        // Initialize Firebase
         const firebaseConfig = self.MYSM_CONFIG.firebase;
         const VAPID_KEY = self.MYSM_CONFIG.vapidKey;
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
         const messaging = getMessaging(app);
 
-        // --- GLOBAL VARIABLES ---
-        let deferredPrompt; 
+        // Global variables
+        let deferredPrompt;
+        let currentUser = null;
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-        // --- Service Worker Registration ---
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/firebase-messaging-sw.js')
                 .then((registration) => {
                     console.log('Service Worker Registered');
+                })
+                .catch((error) => {
+                    console.error('Service Worker Registration Failed:', error);
                 });
         }
 
-        // --- 1. FLOW CONTROLLER ---
+        // Auth State Listener - This runs first!
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                console.log('User signed in:', user.uid);
+                checkState();
+            } else {
+                console.log('Signing in anonymously...');
+                signInAnonymously(auth).catch((error) => {
+                    console.error('Auth error:', error);
+                    alert('Error initializing app: ' + error.message);
+                });
+            }
+        });
+
+        // Flow Controller
         function checkState() {
             const isStandardStandalone = window.matchMedia('(display-mode: standalone)').matches;
             const isIosStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
             const isApp = isStandardStandalone || isIosStandalone;
+
+            const userData = localStorage.getItem('mysm_user');
+            
+            document.getElementById('loading-screen').classList.add('hidden');
 
             if (isMobile && !isApp) {
                 document.getElementById('install-screen').classList.remove('hidden');
                 if(isIos) document.getElementById('ios-install-area').classList.remove('hidden');
                 else document.getElementById('android-install-area').classList.remove('hidden');
             } 
-            else if (!localStorage.getItem('mysm_name')) {
+            else if (!userData) {
                 document.getElementById('setup-screen').classList.remove('hidden');
             } 
             else {
-                showMainApp();
+                const data = JSON.parse(userData);
+                showMainApp(data.name, data.roomCode);
             }
         }
 
+        // Install Prompt Handler
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -59,86 +381,231 @@
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') console.log('User accepted');
+                if (outcome === 'accepted') {
+                    console.log('User accepted install');
+                }
                 deferredPrompt = null;
             } else {
-                alert("To install, tap the Chrome menu (3 dots) and select 'Install App'");
+                alert("To install, tap the Chrome menu (⋮) and select 'Install App'");
             }
         };
 
-        window.saveUser = async () => {
-            const name = document.getElementById('my-name').value.trim();
-            const code = document.getElementById('partner-code').value.trim();
-            if(!name || !code) return alert("Please fill in both!");
-
-            localStorage.setItem('mysm_name', name);
-            localStorage.setItem('mysm_code', code);
-
-            document.getElementById('setup-screen').classList.add('hidden');
-            checkState();
-
-            setDoc(doc(db, "users", name + "_" + code), {
-                name: name, code: code, last_seen: serverTimestamp()
-            }, { merge: true }).catch((error) => console.error("Sync error:", error));
+        // Tab Switching
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'create') {
+                document.querySelector('.tab:first-child').classList.add('active');
+                document.getElementById('create-tab').classList.add('active');
+            } else {
+                document.querySelector('.tab:last-child').classList.add('active');
+                document.getElementById('join-tab').classList.add('active');
+            }
         };
 
-        async function showMainApp() {
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('welcome-msg').innerText = `Hi, ${localStorage.getItem('mysm_name')}!`;
+        // Create Room
+        window.createRoom = async () => {
+            const name = document.getElementById('create-name').value.trim();
+            const roomCode = document.getElementById('create-code').value.trim().toLowerCase();
             
+            if (!name || !roomCode) {
+                alert("Please fill in both fields!");
+                return;
+            }
+
+            if (roomCode.length < 4) {
+                alert("Room code must be at least 4 characters!");
+                return;
+            }
+
+            try {
+                const roomRef = doc(db, "rooms", roomCode);
+                const roomDoc = await getDoc(roomRef);
+
+                if (roomDoc.exists() && roomDoc.data().members.length >= 2) {
+                    alert("This room is full! Choose a different code.");
+                    return;
+                }
+
+                // Create or join room
+                const members = roomDoc.exists() ? [...roomDoc.data().members, currentUser.uid] : [currentUser.uid];
+                
+                await setDoc(roomRef, {
+                    members: members,
+                    createdAt: serverTimestamp(),
+                    lastActivity: serverTimestamp()
+                }, { merge: true });
+
+                // Save user data
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    displayName: name,
+                    roomCode: roomCode,
+                    joinedAt: serverTimestamp()
+                });
+
+                localStorage.setItem('mysm_user', JSON.stringify({ name, roomCode }));
+                
+                document.getElementById('setup-screen').classList.add('hidden');
+                showMainApp(name, roomCode);
+
+            } catch (error) {
+                console.error('Create room error:', error);
+                alert('Error creating room: ' + error.message);
+            }
+        };
+
+        // Join Room
+        window.joinRoom = async () => {
+            const name = document.getElementById('join-name').value.trim();
+            const roomCode = document.getElementById('join-code').value.trim().toLowerCase();
+            
+            if (!name || !roomCode) {
+                alert("Please fill in both fields!");
+                return;
+            }
+
+            try {
+                const roomRef = doc(db, "rooms", roomCode);
+                const roomDoc = await getDoc(roomRef);
+
+                if (!roomDoc.exists()) {
+                    alert("Room not found! Check the code.");
+                    return;
+                }
+
+                const roomData = roomDoc.data();
+                if (roomData.members.length >= 2 && !roomData.members.includes(currentUser.uid)) {
+                    alert("This room is full!");
+                    return;
+                }
+
+                // Join room
+                const members = roomData.members.includes(currentUser.uid) 
+                    ? roomData.members 
+                    : [...roomData.members, currentUser.uid];
+                
+                await setDoc(roomRef, {
+                    members: members,
+                    lastActivity: serverTimestamp()
+                }, { merge: true });
+
+                // Save user data
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    displayName: name,
+                    roomCode: roomCode,
+                    joinedAt: serverTimestamp()
+                });
+
+                localStorage.setItem('mysm_user', JSON.stringify({ name, roomCode }));
+                
+                document.getElementById('setup-screen').classList.add('hidden');
+                showMainApp(name, roomCode);
+
+            } catch (error) {
+                console.error('Join room error:', error);
+                alert('Error joining room: ' + error.message);
+            }
+        };
+
+        // Show Main App
+        async function showMainApp(name, roomCode) {
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('welcome-msg').innerText = `Hi, ${name}! 💕`;
+            document.getElementById('display-code').innerText = roomCode;
+
+            // Check notification permission
             if (Notification.permission === "granted") {
-                document.getElementById('notify-btn').style.display = 'none';
-                document.getElementById('status-msg').style.display = 'block';
+                document.getElementById('notify-btn').classList.add('hidden');
+                document.getElementById('status-msg').classList.remove('hidden');
                 
                 try {
                     const registration = await navigator.serviceWorker.ready;
-                    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+                    const token = await getToken(messaging, { 
+                        vapidKey: VAPID_KEY, 
+                        serviceWorkerRegistration: registration 
+                    });
                     
-                    const name = localStorage.getItem('mysm_name');
-                    const code = localStorage.getItem('mysm_code');
-                    await setDoc(doc(db, "users", name + "_" + code), { fcmToken: token }, { merge: true });
-                } catch(e) {
-                    console.error("Silent token refresh failed:", e);
+                    if (token) {
+                        await setDoc(doc(db, "users", currentUser.uid), {
+                            fcmToken: token
+                        }, { merge: true });
+                        console.log('FCM token saved:', token);
+                    }
+                } catch(error) {
+                    console.error("Token refresh failed:", error);
                 }
             }
         }
 
+        // Request Notification Permission
         window.requestPermission = async () => {
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    showMainApp(); 
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await getToken(messaging, { 
+                        vapidKey: VAPID_KEY, 
+                        serviceWorkerRegistration: registration 
+                    });
+                    
+                    if (token) {
+                        await setDoc(doc(db, "users", currentUser.uid), {
+                            fcmToken: token
+                        }, { merge: true });
+                        
+                        document.getElementById('notify-btn').classList.add('hidden');
+                        document.getElementById('status-msg').classList.remove('hidden');
+                    }
                 } else {
-                    alert("Notifications denied. Please enable them in settings.");
+                    alert("Notifications denied. You won't receive messages!");
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Permission error:', error);
                 alert("Error: " + error.message);
             }
-        }
+        };
 
-        window.sendLove = async (msg) => {
-           try {
-               const btn = event.target; 
-               const originalText = btn.innerText;
-               btn.innerText = "Sent! 💌";
-               setTimeout(() => btn.innerText = originalText, 2000);
+        // Send Love Message
+        window.sendLove = async (message) => {
+            try {
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "Sent! 💌";
+                btn.disabled = true;
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
 
-               const name = localStorage.getItem('mysm_name');
-               const code = localStorage.getItem('mysm_code');
-               
-               await setDoc(doc(db, "history", code), {
-                   last_message: msg, from: name, timestamp: serverTimestamp(), trigger_id: Date.now()
-               }, { merge: true });
-           } catch (error) { alert("Error: " + error.message); }
-        }
+                const userData = JSON.parse(localStorage.getItem('mysm_user'));
+                
+                await addDoc(collection(db, "rooms", userData.roomCode, "messages"), {
+                    message: message,
+                    from: currentUser.uid,
+                    fromName: userData.name,
+                    timestamp: serverTimestamp()
+                });
 
+                // Update room activity
+                await setDoc(doc(db, "rooms", userData.roomCode), {
+                    lastActivity: serverTimestamp()
+                }, { merge: true });
+
+            } catch (error) {
+                console.error('Send error:', error);
+                alert("Error sending message: " + error.message);
+            }
+        };
+
+        // Reset App
         window.resetApp = () => {
-            if(confirm("Sign out?")) {
+            if (confirm("Sign out and clear all data?")) {
                 localStorage.clear();
                 window.location.reload();
             }
         };
-
-        checkState();
     </script>
+</body>
+</html>
