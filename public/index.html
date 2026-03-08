@@ -183,7 +183,6 @@
 </head>
 <body>
 
-    <!-- Install Screen -->
     <div id="install-screen" class="screen hidden">
         <h1>💕 MYSM</h1>
         <p style="text-align: center; font-size: 14px; color: #999;">Missing You So Much</p>
@@ -210,7 +209,6 @@
         </div>
     </div>
 
-    <!-- Setup Screen -->
     <div id="setup-screen" class="screen hidden">
         <h1>💕 Welcome to MYSM</h1>
         <p style="text-align: center; font-size: 14px; color: #999; margin-bottom: 20px;">
@@ -222,7 +220,6 @@
             <button class="tab" onclick="switchTab('join')">Join Room</button>
         </div>
 
-        <!-- Create Room Tab -->
         <div id="create-tab" class="tab-content active">
             <p>Create a private room and share the code with your partner.</p>
             <input type="text" id="create-name" placeholder="Your Name" maxlength="30">
@@ -230,7 +227,6 @@
             <button onclick="createRoom()">Create Room</button>
         </div>
 
-        <!-- Join Room Tab -->
         <div id="join-tab" class="tab-content">
             <p>Enter the room code your partner shared with you.</p>
             <input type="text" id="join-name" placeholder="Your Name" maxlength="30">
@@ -243,7 +239,6 @@
         </p>
     </div>
 
-    <!-- App Screen -->
     <div id="app-screen" class="screen hidden">
         <h1 id="welcome-msg">Hi! 💕</h1>
         
@@ -251,6 +246,13 @@
             <strong>Your Room Code:</strong>
             <code id="display-code">----</code>
             <p style="font-size: 12px; color: #999; margin-top: 10px;">Share this code with your partner</p>
+        </div>
+
+        <div id="message-history" class="info-box">
+            <strong>Recent Messages:</strong>
+            <div id="messages-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto; font-size: 14px;">
+                <p style="color: #999;">No messages yet...</p>
+            </div>
         </div>
 
         <div id="notify-area">
@@ -286,7 +288,6 @@
         </div>
     </div>
 
-    <!-- Loading Screen -->
     <div id="loading-screen" class="screen">
         <div class="loading">
             <h1>💕</h1>
@@ -298,7 +299,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        // UPDATED: Added query, orderBy, and limit
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
 
         // Check if config loaded
@@ -513,6 +515,30 @@
             document.getElementById('app-screen').classList.remove('hidden');
             document.getElementById('welcome-msg').innerText = `Hi, ${name}! 💕`;
             document.getElementById('display-code').innerText = roomCode;
+
+            // NEW: Setup Live Listener for Messages
+            const messagesRef = collection(db, "rooms", roomCode, "messages");
+            const q = query(messagesRef, orderBy("timestamp", "desc"), limit(10));
+
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('messages-list');
+                if (!snapshot.empty) {
+                    list.innerHTML = ''; // Clear the "No messages yet" text
+                    
+                    // Firestore returns desc, so we reverse it to show newest at bottom
+                    const docs = [];
+                    snapshot.forEach((doc) => docs.push(doc.data()));
+                    docs.reverse().forEach((data) => {
+                        const msgEl = document.createElement('p');
+                        msgEl.style.marginBottom = '5px';
+                        msgEl.innerHTML = `<strong style="color: #FF69B4;">${data.fromName}:</strong> ${data.message}`;
+                        list.appendChild(msgEl);
+                    });
+                    
+                    // Auto-scroll to bottom
+                    list.scrollTop = list.scrollHeight;
+                }
+            });
 
             // Check notification permission
             if (Notification.permission === "granted") {
