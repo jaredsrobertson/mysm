@@ -28,8 +28,7 @@
             background: white;
             border-radius: 20px;
             padding: 30px;
-            max-width: 400px;
-            width: 100%;
+            width: 400px; /* Fixed pixel width */
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         .hidden {
@@ -81,12 +80,6 @@
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
-        }
-        .secondary-btn {
-            background: #FFB6C1;
-        }
-        .secondary-btn:hover {
-            background: #FFA6B1;
         }
         .message-btn {
             background: linear-gradient(135deg, #FF69B4, #FF1493);
@@ -142,7 +135,7 @@
             display: inline-block;
             width: 10px;
             height: 10px;
-            border-radius: 50%;
+            border-radius: 5px;
             background: #4CAF50;
             margin-right: 5px;
         }
@@ -178,6 +171,59 @@
         }
         .tab-content.active {
             display: block;
+        }
+
+        /* --- NEW CHAT HISTORY STYLES --- */
+        .chat-container {
+            background: #FFF0F5;
+            padding: 20px;
+            border-radius: 20px;
+            height: 350px; /* Fixed pixel height */
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 5px;
+        }
+        .chat-bubble {
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 260px; /* Fixed pixel width instead of % */
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-mine {
+            background: #E8F5E9; /* Light green from screenshot */
+            align-self: flex-end;
+            text-align: right;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-theirs {
+            background: #FFFFFF; /* White from screenshot */
+            align-self: flex-start;
+            text-align: left;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .chat-sender {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .chat-text {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .chat-time {
+            font-size: 10px;
+            color: #AAA;
         }
     </style>
 </head>
@@ -242,27 +288,20 @@
     <div id="app-screen" class="screen hidden">
         <h1 id="welcome-msg">Hi! 💕</h1>
         
-        <div id="room-info" class="info-box">
-            <strong>Your Room Code:</strong>
-            <code id="display-code">----</code>
-            <p style="font-size: 12px; color: #999; margin-top: 10px;">Share this code with your partner</p>
-        </div>
-
-        <div id="message-history" class="info-box">
-            <strong>Recent Messages:</strong>
-            <div id="messages-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto; font-size: 14px;">
-                <p style="color: #999;">No messages yet...</p>
+        <div id="room-info" class="info-box" style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <span style="color: #666; font-size: 14px;">Room:</span>
+                <code id="display-code">----</code>
+            </div>
+            <div id="status-msg" class="hidden">
+                <span class="status-indicator"></span>
             </div>
         </div>
 
         <div id="notify-area">
-            <button id="notify-btn" onclick="requestPermission()">
+            <button id="notify-btn" onclick="requestPermission()" style="background: #2ecc71;">
                 🔔 Enable Notifications
             </button>
-            <div id="status-msg" class="info-box hidden">
-                <span class="status-indicator"></span>
-                <span style="color: #4CAF50; font-weight: bold;">Notifications Active</span>
-            </div>
         </div>
 
         <h2>Send a Message</h2>
@@ -283,6 +322,14 @@
             <span class="emoji">🥰</span> Can't wait to see you!
         </button>
 
+        <!-- MOVED AND REDESIGNED CHAT HISTORY -->
+        <h2 style="margin-top: 30px; margin-bottom: 15px;">Message History</h2>
+        <div class="chat-container">
+            <div id="messages-list" class="chat-list">
+                <p style="color: #999; text-align: center; margin-top: 20px;">No messages yet...</p>
+            </div>
+        </div>
+
         <div class="reset-link">
             <a href="#" onclick="resetApp(); return false;">Sign Out</a>
         </div>
@@ -299,16 +346,11 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-        // UPDATED: Added query, orderBy, and limit
         import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js";
 
-        // Check if config loaded
-        if (!self.MYSM_CONFIG) {
-            alert("Error: config.js is missing! Create it from config.example.js");
-        }
+        if (!self.MYSM_CONFIG) alert("Error: config.js is missing! Create it from config.example.js");
 
-        // Initialize Firebase
         const firebaseConfig = self.MYSM_CONFIG.firebase;
         const VAPID_KEY = self.MYSM_CONFIG.vapidKey;
 
@@ -317,44 +359,28 @@
         const db = getFirestore(app);
         const messaging = getMessaging(app);
 
-        // Global variables
         let deferredPrompt;
         let currentUser = null;
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                .then((registration) => {
-                    console.log('Service Worker Registered');
-                })
-                .catch((error) => {
-                    console.error('Service Worker Registration Failed:', error);
-                });
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').catch((error) => console.error('SW Failed:', error));
         }
 
-        // Auth State Listener - This runs first!
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                console.log('User signed in:', user.uid);
                 checkState();
             } else {
-                console.log('Signing in anonymously...');
-                signInAnonymously(auth).catch((error) => {
-                    console.error('Auth error:', error);
-                    alert('Error initializing app: ' + error.message);
-                });
+                signInAnonymously(auth).catch((error) => alert('Error initializing app: ' + error.message));
             }
         });
 
-        // Flow Controller
         function checkState() {
             const isStandardStandalone = window.matchMedia('(display-mode: standalone)').matches;
             const isIosStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
             const isApp = isStandardStandalone || isIosStandalone;
-
             const userData = localStorage.getItem('mysm_user');
             
             document.getElementById('loading-screen').classList.add('hidden');
@@ -373,265 +399,155 @@
             }
         }
 
-        // Install Prompt Handler
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-        });
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+        window.triggerAndroidInstall = async () => { if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } };
 
-        window.triggerAndroidInstall = async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('User accepted install');
-                }
-                deferredPrompt = null;
-            } else {
-                alert("To install, tap the Chrome menu (⋮) and select 'Install App'");
-            }
-        };
-
-        // Tab Switching
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            if (tab === 'create') {
-                document.querySelector('.tab:first-child').classList.add('active');
-                document.getElementById('create-tab').classList.add('active');
-            } else {
-                document.querySelector('.tab:last-child').classList.add('active');
-                document.getElementById('join-tab').classList.add('active');
-            }
+            if (tab === 'create') { document.querySelector('.tab:first-child').classList.add('active'); document.getElementById('create-tab').classList.add('active'); } 
+            else { document.querySelector('.tab:last-child').classList.add('active'); document.getElementById('join-tab').classList.add('active'); }
         };
 
-        // Create Room
         window.createRoom = async () => {
             const name = document.getElementById('create-name').value.trim();
             const roomCode = document.getElementById('create-code').value.trim().toLowerCase();
-            
-            if (!name || !roomCode) {
-                alert("Please fill in both fields!");
-                return;
-            }
-
-            if (roomCode.length < 4) {
-                alert("Room code must be at least 4 characters!");
-                return;
-            }
+            if (!name || !roomCode) return alert("Please fill in both fields!");
+            if (roomCode.length < 4) return alert("Room code must be at least 4 characters!");
 
             try {
                 const roomRef = doc(db, "rooms", roomCode);
                 const roomDoc = await getDoc(roomRef);
+                if (roomDoc.exists() && roomDoc.data().members.length >= 2) return alert("This room is full!");
 
-                if (roomDoc.exists() && roomDoc.data().members.length >= 2) {
-                    alert("This room is full! Choose a different code.");
-                    return;
-                }
-
-                // Create or join room
                 const members = roomDoc.exists() ? [...roomDoc.data().members, currentUser.uid] : [currentUser.uid];
-                
-                await setDoc(roomRef, {
-                    members: members,
-                    createdAt: serverTimestamp(),
-                    lastActivity: serverTimestamp()
-                }, { merge: true });
-
-                // Save user data
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    displayName: name,
-                    roomCode: roomCode,
-                    joinedAt: serverTimestamp()
-                });
+                await setDoc(roomRef, { members: members, createdAt: serverTimestamp(), lastActivity: serverTimestamp() }, { merge: true });
+                await setDoc(doc(db, "users", currentUser.uid), { displayName: name, roomCode: roomCode, joinedAt: serverTimestamp() });
 
                 localStorage.setItem('mysm_user', JSON.stringify({ name, roomCode }));
-                
                 document.getElementById('setup-screen').classList.add('hidden');
                 showMainApp(name, roomCode);
-
-            } catch (error) {
-                console.error('Create room error:', error);
-                alert('Error creating room: ' + error.message);
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         };
 
-        // Join Room
         window.joinRoom = async () => {
             const name = document.getElementById('join-name').value.trim();
             const roomCode = document.getElementById('join-code').value.trim().toLowerCase();
-            
-            if (!name || !roomCode) {
-                alert("Please fill in both fields!");
-                return;
-            }
+            if (!name || !roomCode) return alert("Please fill in both fields!");
 
             try {
                 const roomRef = doc(db, "rooms", roomCode);
                 const roomDoc = await getDoc(roomRef);
-
-                if (!roomDoc.exists()) {
-                    alert("Room not found! Check the code.");
-                    return;
-                }
+                if (!roomDoc.exists()) return alert("Room not found!");
 
                 const roomData = roomDoc.data();
-                if (roomData.members.length >= 2 && !roomData.members.includes(currentUser.uid)) {
-                    alert("This room is full!");
-                    return;
-                }
+                if (roomData.members.length >= 2 && !roomData.members.includes(currentUser.uid)) return alert("This room is full!");
 
-                // Join room
-                const members = roomData.members.includes(currentUser.uid) 
-                    ? roomData.members 
-                    : [...roomData.members, currentUser.uid];
-                
-                await setDoc(roomRef, {
-                    members: members,
-                    lastActivity: serverTimestamp()
-                }, { merge: true });
-
-                // Save user data
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    displayName: name,
-                    roomCode: roomCode,
-                    joinedAt: serverTimestamp()
-                });
+                const members = roomData.members.includes(currentUser.uid) ? roomData.members : [...roomData.members, currentUser.uid];
+                await setDoc(roomRef, { members: members, lastActivity: serverTimestamp() }, { merge: true });
+                await setDoc(doc(db, "users", currentUser.uid), { displayName: name, roomCode: roomCode, joinedAt: serverTimestamp() });
 
                 localStorage.setItem('mysm_user', JSON.stringify({ name, roomCode }));
-                
                 document.getElementById('setup-screen').classList.add('hidden');
                 showMainApp(name, roomCode);
-
-            } catch (error) {
-                console.error('Join room error:', error);
-                alert('Error joining room: ' + error.message);
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         };
 
-        // Show Main App
         async function showMainApp(name, roomCode) {
             document.getElementById('app-screen').classList.remove('hidden');
             document.getElementById('welcome-msg').innerText = `Hi, ${name}! 💕`;
             document.getElementById('display-code').innerText = roomCode;
 
-            // NEW: Setup Live Listener for Messages
+            // Chat History Listener
             const messagesRef = collection(db, "rooms", roomCode, "messages");
-            const q = query(messagesRef, orderBy("timestamp", "desc"), limit(10));
+            const q = query(messagesRef, orderBy("timestamp", "desc"), limit(20));
 
             onSnapshot(q, (snapshot) => {
                 const list = document.getElementById('messages-list');
                 if (!snapshot.empty) {
-                    list.innerHTML = ''; // Clear the "No messages yet" text
+                    list.innerHTML = ''; 
                     
-                    // Firestore returns desc, so we reverse it to show newest at bottom
                     const docs = [];
                     snapshot.forEach((doc) => docs.push(doc.data()));
+                    
                     docs.reverse().forEach((data) => {
-                        const msgEl = document.createElement('p');
-                        msgEl.style.marginBottom = '5px';
-                        msgEl.innerHTML = `<strong style="color: #FF69B4;">${data.fromName}:</strong> ${data.message}`;
+                        const isMine = data.from === currentUser.uid;
+                        const bubbleClass = isMine ? 'chat-mine' : 'chat-theirs';
+                        
+                        let timeString = '';
+                        if (data.timestamp) {
+                            const date = data.timestamp.toDate();
+                            // Added the time stamp next to the date as requested!
+                            timeString = date.toLocaleString([], {
+                                month: 'numeric', 
+                                day: 'numeric', 
+                                year: 'numeric', 
+                                hour: 'numeric', 
+                                minute: '2-digit'
+                            });
+                        }
+
+                        const msgEl = document.createElement('div');
+                        msgEl.className = `chat-bubble ${bubbleClass}`;
+                        msgEl.innerHTML = `
+                            <div class="chat-sender">${data.fromName}</div>
+                            <div class="chat-text">${data.message}</div>
+                            <div class="chat-time">${timeString}</div>
+                        `;
                         list.appendChild(msgEl);
                     });
                     
-                    // Auto-scroll to bottom
+                    // Keep scroll at the bottom
                     list.scrollTop = list.scrollHeight;
                 }
             });
 
-            // Check notification permission
             if (Notification.permission === "granted") {
                 document.getElementById('notify-btn').classList.add('hidden');
                 document.getElementById('status-msg').classList.remove('hidden');
-                
                 try {
                     const registration = await navigator.serviceWorker.ready;
-                    const token = await getToken(messaging, { 
-                        vapidKey: VAPID_KEY, 
-                        serviceWorkerRegistration: registration 
-                    });
-                    
-                    if (token) {
-                        await setDoc(doc(db, "users", currentUser.uid), {
-                            fcmToken: token
-                        }, { merge: true });
-                        console.log('FCM token saved:', token);
-                    }
-                } catch(error) {
-                    console.error("Token refresh failed:", error);
-                }
+                    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+                    if (token) await setDoc(doc(db, "users", currentUser.uid), { fcmToken: token }, { merge: true });
+                } catch(error) { console.error("Token error:", error); }
             }
         }
 
-        // Request Notification Permission
         window.requestPermission = async () => {
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     const registration = await navigator.serviceWorker.ready;
-                    const token = await getToken(messaging, { 
-                        vapidKey: VAPID_KEY, 
-                        serviceWorkerRegistration: registration 
-                    });
-                    
+                    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
                     if (token) {
-                        await setDoc(doc(db, "users", currentUser.uid), {
-                            fcmToken: token
-                        }, { merge: true });
-                        
+                        await setDoc(doc(db, "users", currentUser.uid), { fcmToken: token }, { merge: true });
                         document.getElementById('notify-btn').classList.add('hidden');
                         document.getElementById('status-msg').classList.remove('hidden');
                     }
-                } else {
-                    alert("Notifications denied. You won't receive messages!");
-                }
-            } catch (error) {
-                console.error('Permission error:', error);
-                alert("Error: " + error.message);
-            }
+                } else { alert("Notifications denied."); }
+            } catch (error) { alert("Error: " + error.message); }
         };
 
-        // Send Love Message
         window.sendLove = async (message) => {
             try {
                 const btn = event.target.closest('button');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = "Sent! 💌";
                 btn.disabled = true;
-                
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
 
                 const userData = JSON.parse(localStorage.getItem('mysm_user'));
-                
                 await addDoc(collection(db, "rooms", userData.roomCode, "messages"), {
                     message: message,
                     from: currentUser.uid,
                     fromName: userData.name,
                     timestamp: serverTimestamp()
                 });
-
-                // Update room activity
-                await setDoc(doc(db, "rooms", userData.roomCode), {
-                    lastActivity: serverTimestamp()
-                }, { merge: true });
-
-            } catch (error) {
-                console.error('Send error:', error);
-                alert("Error sending message: " + error.message);
-            }
+                await setDoc(doc(db, "rooms", userData.roomCode), { lastActivity: serverTimestamp() }, { merge: true });
+            } catch (error) { alert("Error: " + error.message); }
         };
 
-        // Reset App
-        window.resetApp = () => {
-            if (confirm("Sign out and clear all data?")) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        };
+        window.resetApp = () => { if (confirm("Sign out?")) { localStorage.clear(); window.location.reload(); } };
     </script>
 </body>
 </html>
