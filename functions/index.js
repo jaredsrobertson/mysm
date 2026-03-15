@@ -3,76 +3,60 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-// Trigger when a new message is created in any room
-exports.sendLoveNotification = onDocumentCreated("rooms/{roomCode}/messages/{msgId}", async (event) => {
+exports.sendLoveNotification = onDocumentCreated("rooms/{roomCode}/messages/{messageId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const data = snapshot.data();
+    const roomCode = event.params.roomCode;
+    const senderUid = data.from;
+    const senderName = data.fromName;
+    const messageText = data.message;
+
     try {
-        // Get message data
-        const message = event.data.data();
-        const roomCode = event.params.roomCode;
-        
-        console.log(`New message in room ${roomCode} from ${message.fromName}`);
-
-        // Get room data to find all members
+        // 1. Get the room data to find out who else is in the room
         const roomDoc = await admin.firestore().doc(`rooms/${roomCode}`).get();
-        
         if (!roomDoc.exists) {
-            console.log('Room not found');
-            return null;
+            console.log("Room does not exist.");
+            return;
         }
 
-        const roomData = roomDoc.data();
-        const members = roomData.members || [];
-
-        // Find the partner (the member who didn't send the message)
-        const partnerUid = members.find(uid => uid !== message.from);
-
-        if (!partnerUid) {
-            console.log('No partner found in room');
-            return null;
-        }
-
-        // Get partner's FCM token
-        const partnerDoc = await admin.firestore().doc(`users/${partnerUid}`).get();
+        const members = roomDoc.data().members || [];
         
-        if (!partnerDoc.exists) {
-            console.log('Partner user document not found');
-            return null;
+        // 2. Find the partner (the UID that is NOT the sender's UID)
+        const partnerUids = members.filter(uid => uid !== senderUid);
+        if (partnerUids.length === 0) {
+            console.log("No partner found in room.");
+            return;
         }
 
-        const partnerData = partnerDoc.data();
-        const fcmToken = partnerData.fcmToken;
-
-        if (!fcmToken) {
-            console.log('Partner has no FCM token');
-            return null;
-        }
-
-        // Send notification
-        const messagePayload = {
-            token: fcmToken,
-            notification: {
-                title: `💌 ${message.fromName}`,
-                body: message.message,
-            },
-            webpush: {
-                fcmOptions: {
-                    link: 'https://mysm-baby.web.app'
-                },
-                notification: {
-                    icon: '/icon-192.png',
-                    badge: '/icon-192.png',
-                    vibrate: [200, 100, 200]
-                }
+        // 3. Get the partner's FCM Token from the users collection
+        const tokens = [];
+        for (const uid of partnerUids) {
+            const userDoc = await admin.firestore().doc(`users/${uid}`).get();
+            if (userDoc.exists && userDoc.data().fcmToken) {
+                tokens.push(userDoc.data().fcmToken);
             }
+        }
+
+        if (tokens.length === 0) {
+            console.log("Partner does not have notifications enabled (No FCM Token).");
+            return;
+        }
+
+        // 4. Construct and send the push notification
+        const payload = {
+            notification: {
+                title: `💕 ${senderName}`,
+                body: messageText,
+            },
+            tokens: tokens
         };
 
-        const response = await admin.messaging().send(messagePayload);
-        console.log('Notification sent successfully:', response);
+        const response = await admin.messaging().sendEachForMulticast(payload);
+        console.log(`Successfully sent ${response.successCount} messages.`);
         
-        return null;
-
     } catch (error) {
-        console.error('Error sending notification:', error);
-        return null;
+        console.error("Error sending notification:", error);
     }
 });
