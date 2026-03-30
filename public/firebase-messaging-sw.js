@@ -1,6 +1,6 @@
 // firebase-messaging-sw.js
 
-// Handle install and activation to prevent Chrome's default notification
+// Handle install and activation
 self.addEventListener('install', (event) => {
   console.log('Service worker installing...');
   self.skipWaiting();
@@ -12,8 +12,8 @@ self.addEventListener('activate', (event) => {
 });
 
 importScripts('config.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 
 if (!self.MYSM_CONFIG) {
   console.error("Service Worker: config.js not found!");
@@ -22,46 +22,54 @@ if (!self.MYSM_CONFIG) {
     firebase.initializeApp(self.MYSM_CONFIG.firebase);
     const messaging = firebase.messaging();
 
-    // CRITICAL: Handle push event directly to prevent Chrome's default notification
+    // Handle push events directly — this is the ONLY handler
+    // (no onBackgroundMessage to avoid conflicts)
     self.addEventListener('push', (event) => {
-      console.log('Push event received:', event);
-      
+      console.log('Push event received');
+
       let data = {};
       try {
         if (event.data) {
           data = event.data.json();
-          console.log('Push data:', data);
         }
       } catch (e) {
         console.log('Error parsing push data:', e);
       }
 
-      // Extract notification data (from our data payload)
-      const notificationData = data.data || {};
-      const title = notificationData.title || '💌 New Message';
-      const body = notificationData.body || 'You have a new message';
-      
-      const notificationOptions = {
-        body: body,
-        icon: notificationData.icon || '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'mysm-message',
-        requireInteraction: false,
-        data: {
-          url: notificationData.url || 'https://mysm-baby.web.app'
+      // Check if app is focused — skip notification if so (toast handles it)
+      const promiseChain = self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+      }).then((windowClients) => {
+        const isFocused = windowClients.some(client => client.focused);
+
+        if (isFocused) {
+          console.log('App is focused, skipping system notification');
+          return;
         }
-      };
 
-      // MUST call showNotification to prevent Chrome's default
-      event.waitUntil(
-        self.registration.showNotification(title, notificationOptions)
-      );
-    });
+        // Extract notification data from our data-only payload
+        const notificationData = data.data || {};
+        const title = notificationData.title || '💌 New Message';
+        const body = notificationData.body || 'You have a new message';
 
-    // Also keep Firebase handler as backup
-    messaging.onBackgroundMessage((payload) => {
-      console.log('Background message (Firebase):', payload);
+        const notificationOptions = {
+          body: body,
+          icon: notificationData.icon || '/icon-192.png',
+          badge: '/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'mysm-message',
+          renotify: true,
+          requireInteraction: false,
+          data: {
+            url: notificationData.url || 'https://mysm-baby.web.app'
+          }
+        };
+
+        return self.registration.showNotification(title, notificationOptions);
+      });
+
+      event.waitUntil(promiseChain);
     });
 
     // Handle notification clicks
@@ -72,21 +80,23 @@ if (!self.MYSM_CONFIG) {
       const urlToOpen = event.notification.data?.url || 'https://mysm-baby.web.app';
 
       event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true })
           .then((clientList) => {
-            for (let client of clientList) {
-              if (client.url.includes('mysm-baby')) {
+            // Focus existing window if found
+            for (const client of clientList) {
+              if (client.url.includes('mysm-baby') && 'focus' in client) {
                 return client.focus();
               }
             }
-            if (clients.openWindow) {
-              return clients.openWindow(urlToOpen);
+            // Otherwise open new window
+            if (self.clients.openWindow) {
+              return self.clients.openWindow(urlToOpen);
             }
           })
       );
     });
 
   } catch (error) {
-    console.error('Service Worker error:', error);
+    console.error('Service Worker init error:', error);
   }
 }

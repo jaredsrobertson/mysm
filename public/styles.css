@@ -36,7 +36,7 @@ h1 {
 
 h2 {
     color: #FF69B4;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-size: 20px;
 }
 
@@ -53,6 +53,7 @@ input {
     border-radius: 10px;
     font-size: 16px;
     margin-bottom: 15px;
+    -webkit-appearance: none;
 }
 
 input:focus {
@@ -71,27 +72,35 @@ button {
     font-weight: bold;
     cursor: pointer;
     margin-bottom: 10px;
+    -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
     background: #FF1493;
 }
 
+button:active {
+    transform: scale(0.98);
+}
+
 button:disabled {
     background: #ccc;
     cursor: not-allowed;
+    transform: none;
 }
 
 .message-btn {
     background: linear-gradient(135deg, #FF69B4, #FF1493);
-    margin-bottom: 15px;
-    font-size: 18px;
-    padding: 20px;
+    margin-bottom: 12px;
+    font-size: 17px;
+    padding: 18px;
+    text-align: left;
+    transition: transform 0.1s ease;
 }
 
 .emoji {
-    font-size: 24px;
-    margin-right: 10px;
+    font-size: 22px;
+    margin-right: 8px;
 }
 
 .steps {
@@ -199,6 +208,8 @@ button:disabled {
     cursor: pointer;
     white-space: nowrap;
     font-weight: 600;
+    width: auto;
+    margin-bottom: 0;
 }
 
 .compact-btn:hover {
@@ -219,24 +230,48 @@ button:disabled {
     50% { opacity: 0.5; }
 }
 
+/* Custom Message Area */
+.custom-msg-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.custom-msg-area input {
+    flex: 1;
+    margin-bottom: 0;
+    padding: 12px 15px;
+    font-size: 15px;
+}
+
+.send-btn {
+    width: auto;
+    padding: 12px 20px;
+    margin-bottom: 0;
+    font-size: 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 /* Toast Notification */
 .toast {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
     background: white;
     border-left: 4px solid #FF69B4;
     padding: 15px 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    max-width: 300px;
-    transform: translateX(400px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    max-width: 340px;
+    width: calc(100% - 40px);
     transition: transform 0.3s ease;
     z-index: 1000;
 }
 
 .toast.show {
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
 }
 
 .toast-title {
@@ -252,12 +287,13 @@ button:disabled {
 
 /* Message Feed */
 .message-feed {
-    max-height: 300px;
+    max-height: 350px;
     overflow-y: auto;
     background: #FFF0F5;
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .message-feed::-webkit-scrollbar {
@@ -270,16 +306,16 @@ button:disabled {
 }
 
 .message-item {
-    margin-bottom: 12px;
-    padding: 10px;
-    border-radius: 8px;
-    animation: slideIn 0.3s ease;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    animation: slideIn 0.2s ease;
 }
 
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-5px);
     }
     to {
         opacity: 1;
@@ -290,11 +326,13 @@ button:disabled {
 .message-item.sent {
     background: #E8F5E9;
     text-align: right;
+    margin-left: 30px;
 }
 
 .message-item.received {
     background: white;
     text-align: left;
+    margin-right: 30px;
 }
 
 .message-sender {
@@ -307,6 +345,7 @@ button:disabled {
     color: #333;
     font-size: 14px;
     margin-bottom: 3px;
+    word-break: break-word;
 }
 
 .message-time {
@@ -319,4 +358,30 @@ button:disabled {
     color: #999;
     padding: 20px;
     font-size: 14px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 420px) {
+    body {
+        padding: 10px;
+        align-items: flex-start;
+    }
+
+    .screen {
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    .message-btn {
+        padding: 15px;
+        font-size: 15px;
+    }
 }

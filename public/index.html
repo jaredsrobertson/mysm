@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#FFC0CB">
@@ -17,7 +17,7 @@
     <div id="install-screen" class="screen hidden">
         <h1>💕 MYSM</h1>
         <p style="text-align: center; font-size: 14px; color: #999;">Missing You So Much</p>
-        
+
         <div id="android-install-area" class="hidden">
             <h2>Install the App</h2>
             <p>For the best experience, install MYSM as an app on your device!</p>
@@ -46,7 +46,7 @@
         <p style="text-align: center; font-size: 14px; color: #999; margin-bottom: 20px;">
             Missing You So Much
         </p>
-        
+
         <div class="tab-container">
             <button class="tab active" onclick="switchTab('create')">Create Room</button>
             <button class="tab" onclick="switchTab('join')">Join Room</button>
@@ -74,7 +74,7 @@
     <!-- App Screen -->
     <div id="app-screen" class="screen hidden">
         <h1 id="welcome-msg">Hi! 💕</h1>
-        
+
         <div class="compact-info">
             <div class="info-item">
                 <span class="info-label">Room:</span>
@@ -88,23 +88,33 @@
             </div>
         </div>
 
-        <h2>Send a Message</h2>
-        
-        <button class="message-btn" onclick="sendLove('Missing you so much! 💕')">
+        <h2>Quick Messages</h2>
+
+        <button class="message-btn" onclick="sendLove('Missing you so much! 💕', event)">
             <span class="emoji">💕</span> Missing you!
         </button>
-        
-        <button class="message-btn" onclick="sendLove('Thinking of you right now 💭')">
+
+        <button class="message-btn" onclick="sendLove('Thinking of you right now 💭', event)">
             <span class="emoji">💭</span> Thinking of you
         </button>
-        
-        <button class="message-btn" onclick="sendLove('Love you! ❤️')">
+
+        <button class="message-btn" onclick="sendLove('Love you! ❤️', event)">
             <span class="emoji">❤️</span> Love you!
         </button>
-        
-        <button class="message-btn" onclick="sendLove('Can\'t wait to see you! 🥰')">
+
+        <button class="message-btn" onclick="sendLove('Can\'t wait to see you! 🥰', event)">
             <span class="emoji">🥰</span> Can't wait to see you!
         </button>
+
+        <h2>Custom Message</h2>
+        <div class="custom-msg-area">
+            <input type="text" id="custom-msg-input"
+                   placeholder="Type your message..."
+                   maxlength="500"
+                   onkeydown="handleCustomKeydown(event)"
+                   autocomplete="off">
+            <button class="send-btn" onclick="sendCustomMessage(event)">Send 💌</button>
+        </div>
 
         <h2>Message History</h2>
         <div id="message-feed" class="message-feed">
