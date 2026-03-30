@@ -21,7 +21,6 @@
   },
   "functions": [
     {
-      "runtime": "nodejs24",
       "source": "functions",
       "codebase": "default",
       "disallowLegacyRuntimeConfig": true,

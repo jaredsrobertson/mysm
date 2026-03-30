@@ -1,31 +1,67 @@
 // firebase-messaging-sw.js
+
+// Handle install and activation to prevent Chrome's default notification
+self.addEventListener('install', (event) => {
+  console.log('Service worker installing...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service worker activating...');
+  event.waitUntil(self.clients.claim());
+});
+
 importScripts('config.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 if (!self.MYSM_CONFIG) {
-  console.error("Service Worker: config.js not found! Create it from config.example.js");
+  console.error("Service Worker: config.js not found!");
 } else {
   try {
     firebase.initializeApp(self.MYSM_CONFIG.firebase);
     const messaging = firebase.messaging();
 
-    // Handle background messages
-    messaging.onBackgroundMessage((payload) => {
-      console.log('Received background message:', payload);
+    // CRITICAL: Handle push event directly to prevent Chrome's default notification
+    self.addEventListener('push', (event) => {
+      console.log('Push event received:', event);
       
-      const notificationTitle = payload.notification.title || 'New Message';
+      let data = {};
+      try {
+        if (event.data) {
+          data = event.data.json();
+          console.log('Push data:', data);
+        }
+      } catch (e) {
+        console.log('Error parsing push data:', e);
+      }
+
+      // Extract notification data (from our data payload)
+      const notificationData = data.data || {};
+      const title = notificationData.title || '💌 New Message';
+      const body = notificationData.body || 'You have a new message';
+      
       const notificationOptions = {
-        body: payload.notification.body || 'You have a new message',
-        icon: '/icon-192.png',
+        body: body,
+        icon: notificationData.icon || '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [200, 100, 200],
+        tag: 'mysm-message',
+        requireInteraction: false,
         data: {
-          url: payload.fcmOptions?.link || 'https://mysm-baby.web.app'
+          url: notificationData.url || 'https://mysm-baby.web.app'
         }
       };
 
-      return self.registration.showNotification(notificationTitle, notificationOptions);
+      // MUST call showNotification to prevent Chrome's default
+      event.waitUntil(
+        self.registration.showNotification(title, notificationOptions)
+      );
+    });
+
+    // Also keep Firebase handler as backup
+    messaging.onBackgroundMessage((payload) => {
+      console.log('Background message (Firebase):', payload);
     });
 
     // Handle notification clicks
@@ -38,13 +74,11 @@ if (!self.MYSM_CONFIG) {
       event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
           .then((clientList) => {
-            // Check if app is already open
             for (let client of clientList) {
-              if (client.url === urlToOpen && 'focus' in client) {
+              if (client.url.includes('mysm-baby')) {
                 return client.focus();
               }
             }
-            // Otherwise open new window
             if (clients.openWindow) {
               return clients.openWindow(urlToOpen);
             }
@@ -53,6 +87,6 @@ if (!self.MYSM_CONFIG) {
     });
 
   } catch (error) {
-    console.error('Service Worker initialization error:', error);
+    console.error('Service Worker error:', error);
   }
 }
